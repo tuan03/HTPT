@@ -1,0 +1,109 @@
+syntax = "proto3";
+package chat;
+// Import protobuf Empty type
+import "google/protobuf/empty.proto";
+
+service ChatService {
+  rpc Connect (google.protobuf.Empty) returns (stream ChatUpdate); // Stream realtime updates
+  rpc JoinRoomChat (JoinRoomRequest) returns (stream DataRoom);
+  rpc SendMessage (SendMessageRequest) returns (google.protobuf.Empty); // Send a message
+  rpc Login (LoginRequest) returns (LoginResponse);
+
+
+
+  rpc MarkAsSeen (SeenRequest) returns (google.protobuf.Empty); // Mark a message as seen
+  rpc CreateGroup (GroupRequest) returns (GroupResponse); // Create a new group
+  rpc AddToGroup (AddToGroupRequest) returns (GroupResponse); // Add a user to a group
+}
+message LoginRequest {
+  string username = 1; // Tên tài khoản
+  string password = 2; // Mật khẩu
+}
+
+// Định nghĩa message cho phản hồi đăng nhập
+message LoginResponse {
+  bool success = 1;      // Đăng nhập thành công hay không
+  string message = 2;    // Thông báo từ server
+  string token = 3;      // Token xác thực (nếu thành công)
+}
+
+message JoinRoomRequest {
+  string idRoom = 1;
+}
+message DataRoom {
+  int32 id=1;
+  string typeM = 2;
+  repeated ItemMessage messList = 3;
+}
+
+message ItemMessage {
+  int32 message_id = 1;  // ID của tin nhắn
+  string message = 2;     // Nội dung tin nhắn
+  string time = 3;        // Thời gian tin nhắn
+  bool isRead = 4;        // Trạng thái đọc tin nhắn
+  bool isMe = 5;          // Kiểm tra nếu tin nhắn là của người gửi
+  User sender = 6;
+}
+
+message ChatUpdate {
+  repeated User online_users = 1; // List of online users
+  repeated LastestMessagesList recent_user_inbox = 2; // List of recent messages
+  repeated UserGroups groupmess = 3;
+}
+
+message LastMessage {
+    int32 message_id = 1;       // ID của tin nhắn
+    int32 sender_id = 2;        // ID người gửi
+    string message = 3;         // Nội dung tin nhắn
+    string time = 4;            // Thời gian gửi tin nhắn (ISO 8601)
+    bool isRead = 5;            // Trạng thái đọc của tin nhắn
+}
+message UserGroups {
+    int32 group_id = 1;         // ID của nhóm
+    string title = 2;           // Tiêu đề của nhóm
+    LastMessage last_message = 3; // Tin nhắn mới nhất trong nhóm
+}
+message LastestMessagesList {
+  int32 message_id = 1;  // ID của tin nhắn
+  string message = 2;     // Nội dung tin nhắn
+  string time = 3;        // Thời gian gửi tin nhắn (chuỗi theo định dạng ISO 8601)
+  bool isRead = 4;        // Trạng thái đọc của tin nhắn
+  bool isMe = 5;          // Xác định liệu tin nhắn là của người gửi hiện tại hay không
+  User col = 6;
+}
+message User {
+    int32 id = 1;
+    string username = 2;
+    string password = 3;
+    string fullname = 4;
+}
+
+
+message SendMessageRequest {
+  string message = 1; 
+  oneof target {
+    int32 receiver_id = 2;
+    int32 group_id = 3;
+  }
+}
+
+message SeenRequest {
+  string username = 1; // Username marking the message as seen
+  string message_id = 2; // ID of the message
+}
+
+message GroupRequest {
+  string group_name = 1; // Name of the group
+  string creator = 2; // Username of the group creator
+}
+
+message GroupResponse {
+  string group_id = 1; // ID of the group
+  string group_name = 2; // Name of the group
+  repeated string members = 3; // List of group members
+}
+
+message AddToGroupRequest {
+  string group_id = 1; // ID of the group
+  string username = 2; // Username to add
+}
