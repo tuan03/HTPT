@@ -2,7 +2,8 @@ import tkinter as tk
 from PIL import Image, ImageTk
 from tkinter import filedialog
 from tkinter import messagebox
-import datetime
+from datetime import datetime
+from datetime import timedelta
 import sqlite3
 import io
 import numpy as np
@@ -40,6 +41,7 @@ class ChatClient:
         self.stub = chat_pb2_grpc.ChatServiceStub(self.channel)
         self.metadata =  None
         self.uid = None
+        self.fullname = None
     def isLogin(self):
         if self.metadata:
             return True 
@@ -84,6 +86,28 @@ class ChatClient:
 
         # Chạy ứng dụng
         self.__login_frame.mainloop()
+    def time_ago(self,time_str):
+        # Chuyển chuỗi thời gian thành đối tượng datetime (bao gồm microseconds)
+        time_format = "%Y-%m-%d %H:%M:%S.%f"
+        time_obj = datetime.strptime(time_str, time_format)
+
+        # Lấy thời gian hiện tại
+        now = datetime.now()
+
+        # Tính toán độ chênh lệch giữa thời gian hiện tại và thời gian đã cho
+        time_diff = now - time_obj
+
+        # Nếu độ chênh lệch lớn hơn 1 tuần
+        if time_diff > timedelta(weeks=1):
+            return time_obj.strftime("%d/%m")  # Trả về ngày/tháng
+        if time_diff < timedelta(minutes=1):
+            return f"{time_diff.seconds} giây trước"
+        elif time_diff < timedelta(hours=1):
+            return f"{time_diff.seconds // 60} phút trước"
+        elif time_diff < timedelta(days=1):
+            return f"{time_diff.seconds // (60*60)} giờ trước"
+        else:
+            return f"{time_diff.days} ngày trước"
     def confirm_name():
         root = tk.Tk()
         root.title("Nhập họ và tên")
@@ -138,6 +162,7 @@ class ChatClient:
             if data.success :
                 self.metadata = [('authorization', data.token)]
                 self.uid = data.uid
+                self.fullname = data.fullname
                 self.__login_frame.destroy()
             else:
                 messagebox.showwarning("Cảnh báo", data.message)    
@@ -159,7 +184,6 @@ class ChatClient:
                 
                 self.list_user_online = online_users_list
                 self.recent_user_inbox = response.recent_user_inbox
-                print(self.recent_user_inbox)
                 self.usergroups = response.groupmess
                 self.render_list_bar()
                 
@@ -176,25 +200,18 @@ class ChatClient:
             ):
 
                 if response.messList:
-                    add_chat_func = self.render_mess(response,"test")
+                    add_chat_func, set_title_func, set_active_func = self.render_mess(response,"test")
                 if response.HasField('newMess'):
                     add_chat_func(response.newMess)
+                if response.HasField('title'):
+                    set_title_func(response.title)
+                if response.HasField('isActive'):
+                    set_active_func(response.isActive,response.lastTimeOnline)
         except grpc.RpcError as e:
             # Handle the error
             print(e)
         except Exception as e:
             print(e)
-    # async def SendMessage(self, room):
-    #     try:
-    #         async for response in self.stub.JoinRoomChat(
-    #             chat_pb2.JoinRoomRequest(idRoom=room),
-    #             metadata=self.metadata
-    #         ):
-    #             if response.messList:
-    #                 self.render_mess(response.messList,"test")
-                
-    #     except Exception as e:
-    #         print(e)
     async def run(self):
         self.root = tk.Tk()
         self.root.title("CHATTING")
@@ -245,8 +262,7 @@ class ChatClient:
         left_bar_header.place(x=0, y=0)
         self.left_bar = left_bar
         self.create_border(left_bar_header,btype="B")
-        entry = tk.Entry(left_bar_header, font=("Arial", 13), width=25,bd=1, relief="solid")
-        left_bar_header.create_window(10, 13, window=entry,anchor="nw")
+        left_bar_header.create_text(10,  13,anchor='nw', text=self.fullname, fill="black",font=("Arial", 15))
 
         __temp = self.render_img(left_bar_header,"group-add.png",30,30,240,10,on_click=lambda e : print("cl"))
         text_id =  left_bar_header.create_text(10,  50,anchor='nw', text=f"Tin nhắn", fill="black",font=("Arial", 12)) 
@@ -332,9 +348,12 @@ class ChatClient:
             for index, row in enumerate(self.recent_user_inbox): # [{'message_id': 21, 'message': 'Message 21', 'time': '2024-12-03', 'isRead': True, 'isMe': False, 'col': {'id': 2, 'username': 'hoangminh7', 'password': 'password123', 'fullname': 'Hoàng Minh Tâm'}}]
                 child_can = tk.Canvas(self.__def__sub_canvas, width=self._w_temp, height=70, bg="white",borderwidth=0, highlightthickness=0)
                 self.__def__sub_canvas.create_window(0, (index)*70, window=child_can,anchor='nw')
-                child_can.create_text(10,  10,anchor='nw', text=row.col.fullname, fill="black",font=("Arial", 15)) 
-                child_can.create_text(10,  40,anchor='nw', text=self.truncate_text(row.message, 45), fill="black",font=("Arial", 10)) 
-                child_can.create_text(self._w_temp-50,  10,anchor='nw', text=row.time, fill="black",font=("Arial", 10)) 
+                child_can.create_text(10,  10,anchor='nw', text=row.col.fullname, fill="black",font=("Arial", 15))
+                if row.isRead == True: 
+                    child_can.create_text(10,  40,anchor='nw', text=self.truncate_text(row.message, 45), fill="black",font=("Arial", 10))
+                else:  
+                    child_can.create_text(10,  40,anchor='nw', text=self.truncate_text(row.message, 45), fill="black",font=("Arial", 10,"bold"))
+                child_can.create_text(self._w_temp-80,  10,anchor='nw', text=self.time_ago(row.time), fill="black",font=("Arial", 10)) 
                 # datamess = [{'content':"Xin chào tất cả các bạn, tôi đến từ Xin chào tất cả các bạn, tôi đến từ Xin chào tất cả các bạn, tôi đến từ Xin chào tất cả các bạn, tất cả các bạn, tôi đến từ Xin chào tất cả các bạn, tôi đến từ Xin chào tất cả các bạn, tôi đến từ Xin chào tất cả các bạn tôi đến từ Xin chào tất cả các bạn, tôi đến từ ", 'isMe': True, 'time': '11/12', 'isRead':True},{'content':"Xin chào", 'isMe': False, 'time': '11/12', 'isRead':True}]*1
                 child_can.bind("<Button-1>", lambda x , id = row.col.id: asyncio.create_task(self.joinRoomChat(('p'+str(id)))))
                 child_can.update_idletasks()
@@ -344,8 +363,9 @@ class ChatClient:
                 child_can = tk.Canvas(self.__def__sub_canvas, width=self._w_temp, height=70, bg="white",borderwidth=0, highlightthickness=0)
                 self.__def__sub_canvas.create_window(0, (index)*70, window=child_can,anchor='nw')
                 child_can.create_text(10,  10,anchor='nw', text=row.title, fill="black",font=("Arial", 15)) 
+                
                 child_can.create_text(10,  40,anchor='nw', text=self.truncate_text(row.last_message.message, 45), fill="black",font=("Arial", 10)) 
-                child_can.create_text(self._w_temp-50,  10,anchor='nw', text=row.last_message.time, fill="black",font=("Arial", 10)) 
+                child_can.create_text(self._w_temp-80,  10,anchor='nw', text=self.time_ago(row.last_message.time), fill="black",font=("Arial", 10)) 
                 # datamess = [{'content':"Xin chào tất cả các bạn, tôi đến từ Xin chào tất cả các bạn, tôi đến từ Xin chào tất cả các bạn, tôi đến từ Xin chào tất cả các bạn, tất cả các bạn, tôi đến từ Xin chào tất cả các bạn, tôi đến từ Xin chào tất cả các bạn, tôi đến từ Xin chào tất cả các bạn tôi đến từ Xin chào tất cả các bạn, tôi đến từ ", 'isMe': True, 'time': '11/12', 'isRead':True},{'content':"Xin chào", 'isMe': False, 'time': '11/12', 'isRead':True}]*1
                 child_can.bind("<Button-1>", lambda x , id = row.group_id: asyncio.create_task(self.joinRoomChat('g'+str(id))))
                 child_can.update_idletasks()
@@ -380,8 +400,16 @@ class ChatClient:
         main_bar_header = tk.Canvas(main_bar, width=width-x, height=80, bg="white", borderwidth=0, highlightthickness=0)
         main_bar_header.place(x=0, y=0)
         self.create_border(main_bar_header,btype="B")
-        main_bar_header.create_text(20,  20,anchor='nw', text=name, fill="black",font=("Arial", 15)) 
-        main_bar_header.create_text(30,  45,anchor='nw', text="(Đang hoạt động)", fill="black",font=("Arial", 13)) 
+        text_title_id  = main_bar_header.create_text(20,  20,anchor='nw', text="", fill="black",font=("Arial", 15)) 
+        text_status_id = main_bar_header.create_text(30,  45,anchor='nw', text="", fill="black",font=("Arial", 13)) 
+        def render_active( isActive = None, lastTimeOnline = None):
+            if isActive:
+                main_bar_header.itemconfig(text_status_id, text="Đang trực tuyến")
+            elif isActive == False and lastTimeOnline:
+                main_bar_header.itemconfig(text_status_id, text=f"Ngoại tuyến {self.time_ago(lastTimeOnline)}")
+        def render_title(title):
+            main_bar_header.itemconfig(text_title_id, text=title)
+            
         w,h = self.get_w_h(main_bar_header)
         w2,h2 = self.get_w_h(main_bar)
         __def__width = w2
@@ -404,10 +432,10 @@ class ChatClient:
             # Cập nhật kích thước của Canvas để chứa văn bản
             bbox = child_can.bbox("all")  # Lấy bounding box của văn bản
             child_can.config(width=bbox[2]+10, height=bbox[3]+40)
-            child_can.create_text(10, bbox[3]+10, anchor="nw", text=f"{row.time} {row.isRead}", width=250, font=("Arial", 10), fill="black")
+            child_can.create_text(10, bbox[3]+10, anchor="nw", text=f"{self.time_ago(row.time)} {row.isRead}", width=250, font=("Arial", 10), fill="black")
             bbox = child_can.bbox("all")  # Lấy bounding box của văn bản
             child_can.config(width=bbox[2]+10, height=bbox[3])
-            if not row.isMe :
+            if row.sender.id != self.uid :
                 __def__sub_canvas.create_window(10, bbox2[3] + 10, window=child_can,anchor='nw')
             else :
                 __def__sub_canvas.create_window(_w_temp - bbox[2]-30, bbox2[3] + 10, window=child_can,anchor='nw')
@@ -440,7 +468,7 @@ class ChatClient:
             # Cập nhật kích thước của Canvas để chứa văn bản
             bbox = child_can.bbox("all")  # Lấy bounding box của văn bản
             child_can.config(width=bbox[2]+10, height=bbox[3]+40)
-            child_can.create_text(10, bbox[3]+10, anchor="nw", text=f"{new_message.time} (Đã xem)", width=250, font=("Arial", 10), fill="black")
+            child_can.create_text(10, bbox[3]+10, anchor="nw", text=f"{self.time_ago(new_message.time)} (Đã xem)", width=250, font=("Arial", 10), fill="black")
             bbox = child_can.bbox("all")  # Lấy bounding box của văn bản
             child_can.config(width=bbox[2]+10, height=bbox[3])
             if new_message.sender.id != self.uid :
@@ -488,7 +516,7 @@ class ChatClient:
         width = body_bar.winfo_reqwidth()
         height = body_bar.winfo_reqheight()
         body_bar.config(width=width, height=height)
-        return add_mess_to_box
+        return add_mess_to_box, render_title,render_active
 
 
 

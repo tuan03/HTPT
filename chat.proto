@@ -9,11 +9,6 @@ service ChatService {
   rpc SendMessage (SendMessageRequest) returns (google.protobuf.Empty); // Send a message
   rpc Login (LoginRequest) returns (LoginResponse);
 
-
-
-  rpc MarkAsSeen (SeenRequest) returns (google.protobuf.Empty); // Mark a message as seen
-  rpc CreateGroup (GroupRequest) returns (GroupResponse); // Create a new group
-  rpc AddToGroup (AddToGroupRequest) returns (GroupResponse); // Add a user to a group
 }
 message LoginRequest {
   string username = 1; // Tên tài khoản
@@ -26,6 +21,7 @@ message LoginResponse {
   string message = 2;    // Thông báo từ server
   string token = 3;      // Token xác thực (nếu thành công)
   int32 uid= 4;
+  string fullname = 5;
 }
 
 message JoinRoomRequest {
@@ -35,7 +31,10 @@ message DataRoom {
   int32 id=1;
   string typeM = 2;
   repeated ItemMessage messList = 3;
-  optional ItemMessage newMess = 4;
+  optional string lastTimeOnline = 4;
+  optional bool isActive = 5;
+  optional string title = 6;
+  optional ItemMessage newMess = 7;
 }
 
 message ItemMessage {
@@ -43,7 +42,6 @@ message ItemMessage {
   string message = 2;     // Nội dung tin nhắn
   string time = 3;        // Thời gian tin nhắn
   bool isRead = 4;        // Trạng thái đọc tin nhắn
-  bool isMe = 5;          // Kiểm tra nếu tin nhắn là của người gửi
   User sender = 6;
 }
 
@@ -89,23 +87,3 @@ message SendMessageRequest {
   }
 }
 
-message SeenRequest {
-  string username = 1; // Username marking the message as seen
-  string message_id = 2; // ID of the message
-}
-
-message GroupRequest {
-  string group_name = 1; // Name of the group
-  string creator = 2; // Username of the group creator
-}
-
-message GroupResponse {
-  string group_id = 1; // ID of the group
-  string group_name = 2; // Name of the group
-  repeated string members = 3; // List of group members
-}
-
-message AddToGroupRequest {
-  string group_id = 1; // ID of the group
-  string username = 2; // Username to add
-}

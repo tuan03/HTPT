@@ -55,21 +55,6 @@ class ChatServiceStub(object):
                 request_serializer=chat__pb2.LoginRequest.SerializeToString,
                 response_deserializer=chat__pb2.LoginResponse.FromString,
                 _registered_method=True)
-        self.MarkAsSeen = channel.unary_unary(
-                '/chat.ChatService/MarkAsSeen',
-                request_serializer=chat__pb2.SeenRequest.SerializeToString,
-                response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
-                _registered_method=True)
-        self.CreateGroup = channel.unary_unary(
-                '/chat.ChatService/CreateGroup',
-                request_serializer=chat__pb2.GroupRequest.SerializeToString,
-                response_deserializer=chat__pb2.GroupResponse.FromString,
-                _registered_method=True)
-        self.AddToGroup = channel.unary_unary(
-                '/chat.ChatService/AddToGroup',
-                request_serializer=chat__pb2.AddToGroupRequest.SerializeToString,
-                response_deserializer=chat__pb2.GroupResponse.FromString,
-                _registered_method=True)
 
 
 class ChatServiceServicer(object):
@@ -101,27 +86,6 @@ class ChatServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def MarkAsSeen(self, request, context):
-        """Mark a message as seen
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def CreateGroup(self, request, context):
-        """Create a new group
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def AddToGroup(self, request, context):
-        """Add a user to a group
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
 
 def add_ChatServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -144,21 +108,6 @@ def add_ChatServiceServicer_to_server(servicer, server):
                     servicer.Login,
                     request_deserializer=chat__pb2.LoginRequest.FromString,
                     response_serializer=chat__pb2.LoginResponse.SerializeToString,
-            ),
-            'MarkAsSeen': grpc.unary_unary_rpc_method_handler(
-                    servicer.MarkAsSeen,
-                    request_deserializer=chat__pb2.SeenRequest.FromString,
-                    response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
-            ),
-            'CreateGroup': grpc.unary_unary_rpc_method_handler(
-                    servicer.CreateGroup,
-                    request_deserializer=chat__pb2.GroupRequest.FromString,
-                    response_serializer=chat__pb2.GroupResponse.SerializeToString,
-            ),
-            'AddToGroup': grpc.unary_unary_rpc_method_handler(
-                    servicer.AddToGroup,
-                    request_deserializer=chat__pb2.AddToGroupRequest.FromString,
-                    response_serializer=chat__pb2.GroupResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -269,87 +218,6 @@ class ChatService(object):
             '/chat.ChatService/Login',
             chat__pb2.LoginRequest.SerializeToString,
             chat__pb2.LoginResponse.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def MarkAsSeen(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/chat.ChatService/MarkAsSeen',
-            chat__pb2.SeenRequest.SerializeToString,
-            google_dot_protobuf_dot_empty__pb2.Empty.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def CreateGroup(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/chat.ChatService/CreateGroup',
-            chat__pb2.GroupRequest.SerializeToString,
-            chat__pb2.GroupResponse.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def AddToGroup(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/chat.ChatService/AddToGroup',
-            chat__pb2.AddToGroupRequest.SerializeToString,
-            chat__pb2.GroupResponse.FromString,
             options,
             channel_credentials,
             insecure,

@@ -4,7 +4,7 @@ import grpc
 import uuid
 from datetime import datetime, timedelta
 from chat_pb2 import (
-    ChatUpdate, GroupResponse, SeenRequest
+    ChatUpdate
 )
 import chat_pb2
 from google.protobuf.empty_pb2 import Empty
@@ -15,6 +15,15 @@ from collections import defaultdict
 import copy
 import hashlib
 import queue
+
+import logging
+
+# Cấu hình logging
+logging.basicConfig(
+    filename='LOG.txt',   # Đường dẫn tới file log
+    level=logging.INFO,    # Mức độ log (INFO sẽ ghi mọi thông tin quan trọng)
+    format='%(asctime)s - %(message)s'  # Định dạng log bao gồm thời gian
+)
 # Secret key dùng để mã hóa và giải mã JWT
 SECRET_KEY = "your_secret_key"
 # Hàm xác thực JWT
@@ -32,6 +41,7 @@ def verify_jwt(token):
 class ChatService(chat_pb2_grpc.ChatServiceServicer):
     def __init__(self):
         self.online_users = {}
+        self.tick_time_userOfftine = {}
         self.room_users = {}
         self.users = [
                         {'id': 1, 'username': 'u1', 'password': 'p1', 'fullname': 'Nguyễn Anh Tuấn'},
@@ -52,9 +62,9 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
                 "title": "Nhóm học tập",
                 "members": [1, 2, 3, 4],
                 "messages": [
-                    {'message_id': 1, 'sender_id': 1, 'message': 'Chào mọi người!', 'time': '2024-12-01T10:00:00', 'isRead': True},
-                    {'message_id': 2, 'sender_id': 2, 'message': 'Chào bạn, có gì mới không?', 'time': '2024-12-01T10:05:00', 'isRead': False},
-                    {'message_id': 3, 'sender_id': 3, 'message': 'Cần giúp đỡ gì không?', 'time': '2024-12-01T10:10:00', 'isRead': False}
+                    {'message_id': 1, 'sender_id': 1, 'message': 'Chào mọi người!', 'time': '2024-12-01 10:00:00.626571', 'isRead': True},
+                    {'message_id': 2, 'sender_id': 2, 'message': 'Chào bạn, có gì mới không?', 'time': '2024-12-01 10:05:00.626571', 'isRead': False},
+                    {'message_id': 3, 'sender_id': 3, 'message': 'Cần giúp đỡ gì không?', 'time': '2024-12-01 10:10:00.626571', 'isRead': False}
                 ]
             },
             {
@@ -62,9 +72,9 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
                 "title": "Nhóm du lịch",
                 "members": [2, 3, 5, 6],
                 "messages": [
-                    {'message_id': 4, 'sender_id': 2, 'message': 'Ai muốn đi du lịch cuối tuần không?', 'time': '2024-12-01T11:00:00', 'isRead': True},
-                    {'message_id': 5, 'sender_id': 5, 'message': 'Mình đi nhé! Đến đâu?', 'time': '2024-12-01T11:05:00', 'isRead': True},
-                    {'message_id': 6, 'sender_id': 6, 'message': 'Đi đâu cũng được, mình theo các bạn!', 'time': '2024-12-01T11:10:00', 'isRead': False}
+                    {'message_id': 4, 'sender_id': 2, 'message': 'Ai muốn đi du lịch cuối tuần không?', 'time': '2024-12-01 11:00:00.626571', 'isRead': True},
+                    {'message_id': 5, 'sender_id': 5, 'message': 'Mình đi nhé! Đến đâu?', 'time': '2024-12-01 11:05:00.626571', 'isRead': True},
+                    {'message_id': 6, 'sender_id': 6, 'message': 'Đi đâu cũng được, mình theo các bạn!', 'time': '2024-12-01 11:10:00.626571', 'isRead': False}
                 ]
             },
             {
@@ -72,15 +82,15 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
                 "title": "Nhóm công việc",
                 "members": [1, 4, 7, 8],
                 "messages": [
-                    {'message_id': 7, 'sender_id': 1, 'message': 'Họp vào ngày mai nhé!', 'time': '2024-12-02T09:00:00', 'isRead': True},
-                    {'message_id': 8, 'sender_id': 4, 'message': 'Chắc được rồi, giờ nào?', 'time': '2024-12-02T09:05:00', 'isRead': True},
-                    {'message_id': 9, 'sender_id': 7, 'message': 'Họp vào sáng mai, ổn không?', 'time': '2024-12-02T09:10:00', 'isRead': False}
+                    {'message_id': 7, 'sender_id': 1, 'message': 'Họp vào ngày mai nhé!', 'time': '2024-12-02 09:00:00.626571', 'isRead': True},
+                    {'message_id': 8, 'sender_id': 4, 'message': 'Chắc được rồi, giờ nào?', 'time': '2024-12-02 09:05:00.626571', 'isRead': True},
+                    {'message_id': 9, 'sender_id': 7, 'message': 'Họp vào sáng mai, ổn không?', 'time': '2024-12-02 09:10:00.626571', 'isRead': False}
                 ]
             }
         ]
 
         self.messages_by_user = [
-                    {'message_id': 17, 'sender_id': 1, 'receiver_id': 2, 'message': 'Message 20', 'time': '2024-12-04 07:10:57.626571', 'isRead': True}
+                    {'message_id': 17, 'sender_id': 1, 'receiver_id': 2, 'message': 'Message 20', 'time': '2024-12-04 07:10:57.626571', 'isRead': False}
         ]
         self.Room = {}
     def Login(self, request, context):
@@ -97,7 +107,8 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
                 success=True,
                 message="Đăng nhập thành công",
                 token=token,
-                uid = user['id']
+                uid = user['id'],
+                fullname = user['fullname']
             )
         else:
             return chat_pb2.LoginResponse(
@@ -163,11 +174,6 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
         messages = copy.deepcopy(messages)
         messages = [mess for mess in messages if (mess['sender_id'] == user_id and mess['receiver_id'] == they_id) or (mess['sender_id'] == they_id and mess['receiver_id'] == user_id)]
         for message in messages:
-            if message['sender_id'] == user_id:
-                message['isMe'] = True
-            else:
-                message['isMe'] = False 
-
             cob = next(user for user in self.users if user['id'] == message['sender_id'])
             message['sender'] = cob if cob else {}
             sender_id = message.pop('sender_id', None)
@@ -178,7 +184,6 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
         uid = await self.authen(context)
         try :
             self.online_users[uid] = context
-            print("kkk",self.get_user_groups(uid,self.groups))
             while True:
                     await asyncio.sleep(1)
                     update = ChatUpdate(
@@ -192,6 +197,7 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
         finally:
             if uid in self.online_users :
                 del self.online_users[uid]
+                self.tick_time_userOfftine[uid] = str(datetime.now())
         return
     def create_room_id(self,user_id1, user_id2):
         try:
@@ -228,7 +234,6 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
             else:
                 idHash = self.create_room_id(int(-1),int(idRoom[1:]))
                 messList = self.get_group_messages(int(idRoom[1:]))
-                print(messList)
             if idHash not in self.Room:
                 self.Room[idHash] = {}
             if idUser not in self.room_users:
@@ -238,30 +243,56 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
                     del self.Room[self.room_users[idUser]][idUser]
                 self.room_users[idUser] = idHash
             self.Room[idHash][idUser] = context
- 
-            print("tick1",self.Room[idHash])
-            yield chat_pb2.DataRoom(
-                        id = int(idRoom[1:]),
-                        typeM = typeM,
-                        messList=messList
-                    )
+            data_room = {
+                "id": int(idRoom[1:]),
+                "typeM": typeM,
+                "messList": messList
+            }
+
+            if 'p' in idRoom:
+                user_id = int(idRoom[1:])
+                data_room["isActive"] = bool(user_id in self.online_users)
+                if user_id in self.tick_time_userOfftine and user_id not in self.online_users:
+                    data_room["lastTimeOnline"] = self.tick_time_userOfftine[user_id]
+                user = next((u for u in self.users if u['id'] == user_id), None)
+                data_room["title"] = user['fullname'] if user else None
+                self.mark_all_messages_as_read_from_sender(idUser,idRoom[1:])
+            elif 'g' in idRoom:
+                group_id = int(idRoom[1:])
+                group = next((g for g in self.groups if g['group_id'] == group_id), None)
+                data_room["title"] =  group['title'] if group else None
+            
+            
+
+
+            yield chat_pb2.DataRoom(**data_room)
 
             while True:
                     await asyncio.sleep(1)
-                    yield chat_pb2.DataRoom(
-                        id = int(idRoom[1:]),
-                        typeM = typeM,
-                        messList=None,
-                        newMess=None
-                    )
+                    data_room = {
+                        "id": int(idRoom[1:]),
+                        "typeM": typeM,
+                        "messList": None
+                    }
+
+                    if 'p' in idRoom:
+                        user_id = int(idRoom[1:])
+                        data_room["isActive"] = bool(user_id in self.online_users)
+                        if user_id in self.tick_time_userOfftine and user_id not in self.online_users:
+                            data_room["lastTimeOnline"] = self.tick_time_userOfftine[user_id]
+                        user = next((u for u in self.users if u['id'] == user_id), None)
+                        data_room["title"] = user['fullname'] if user else None
+                    elif 'g' in idRoom:
+                        group_id = int(idRoom[1:])
+                        group = next((g for g in self.groups if g['group_id'] == group_id), None)
+                        data_room["title"] =  group['title'] if group else None
+                    yield chat_pb2.DataRoom(**data_room)
             return
         except Exception as e:
             print(e)
         finally:
             if idUser in self.Room[idHash]:
                 del self.Room[idHash][idUser]
-                print("Đã đóng connect trước")
-                print("tick2",self.Room[idHash])
     def add_message(self, mess, sender, receiver):
         # Tạo một ID mới cho tin nhắn
         new_message_id = max([msg['message_id'] for msg in self.messages_by_user]) + 1
@@ -328,6 +359,10 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
                         typeM = 'p',
                         newMess=newMess
                     ))
+                    if receiver_id  == i:
+                        print("=====")
+                        print(receiver_id,"---",i)
+                        self.mark_message_as_read(newMess['message_id'])
             elif request.HasField("group_id"):
                 group_id = request.group_id
                 roomHash = self.create_room_id(int(-1),int(group_id))
@@ -344,6 +379,14 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
             return Empty()
         except Exception as e:
             print(e)
+    def mark_all_messages_as_read_from_sender(self,receiver_id, sender_id):
+        for msg in self.messages_by_user:
+            if msg['receiver_id'] == int(receiver_id) and msg['sender_id'] == int(sender_id):
+                msg['isRead'] = True
+    def mark_message_as_read(self,message_id):
+        message = next((msg for msg in self.messages_by_user if msg['message_id'] == int(message_id)), None)
+        if message:
+            message['isRead'] = True
 
     async def MarkAsSeen(self, request, context):
         for message in self.messages:
@@ -366,12 +409,28 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
         if group:
             group["members"].add(request.username)
         return GroupResponse(group_id=request.group_id, group_name=group["name"], members=list(group["members"]))
+    async def print_abc(self):
+        while True:
+            log_message = "\n\n\n" + "="*38 + "\n"
+            log_message += "======ROOM======\n" + str(self.Room) + "\n"
+            log_message += "======ROOM USER======\n" + str(self.room_users) + "\n"
+            log_message += "======OFFLINE USER======\n" + str(self.tick_time_userOfftine) + "\n"
+            
+            log_message += "="*38 + "\n"
+            
+            # Ghi thông tin vào file log
+            logging.info(log_message)
+            
+            # Chờ 2 giây
+            await asyncio.sleep(2)
 
 async def serve():
     server = grpc.aio.server()
-    chat_pb2_grpc.add_ChatServiceServicer_to_server(ChatService(), server)
+    chats = ChatService()
+    chat_pb2_grpc.add_ChatServiceServicer_to_server(chats, server)
     server.add_insecure_port('[::]:50051')
     await server.start()
+    await chats.print_abc()
     await server.wait_for_termination()
 
 if __name__ == "__main__":
