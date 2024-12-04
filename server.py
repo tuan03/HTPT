@@ -187,9 +187,13 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
                 key = tuple(sorted([message['sender_id'], message['receiver_id']]))
                 if latest_messages[key] is None or latest_messages[key]['time'] < message['time']:
                     latest_messages[key] = message
+        
+        recent_messages = list(latest_messages.values())
+        latest_messages = copy.deepcopy(recent_messages)
+        # Sắp xếp danh sách theo thời gian giảm dần
+        latest_messages = sorted(latest_messages, key=lambda x: x['time'], reverse=True)
         result = []
-        latest_messages = copy.deepcopy(latest_messages)
-        for message in latest_messages.values():
+        for message in latest_messages:
             if message['sender_id'] == user_id:
                 message['isMe'] = True  # Nếu người gửi là người dùng
             else:

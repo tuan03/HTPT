@@ -629,7 +629,7 @@ class ChatClient:
         main_bar_footer.create_window(10, 13, window=text_widget,anchor="nw")
 
         def add_mess_to_box(new_message):
-            text_widget.delete("1.0", "end")
+            
             bbox2 = __def__sub_canvas.bbox("all")
             if bbox2 is None:
                 bbox2 = (0,0,0,0)
@@ -638,7 +638,7 @@ class ChatClient:
             # Cập nhật kích thước của Canvas để chứa văn bản
             bbox = child_can.bbox("all")  # Lấy bounding box của văn bản
             child_can.config(width=bbox[2]+10, height=bbox[3]+40)
-            child_can.create_text(10, bbox[3]+10, anchor="nw", text=f"(Vừa xong)", width=250, font=("Arial", 10), fill="black")
+            child_can.create_text(10, bbox[3]+10, anchor="nw", text=f"Vừa xong", width=250, font=("Arial", 9), fill="black")
             bbox = child_can.bbox("all")  # Lấy bounding box của văn bản
             child_can.config(width=bbox[2]+10, height=bbox[3])
             if new_message.sender.id != self.uid :
@@ -680,7 +680,7 @@ class ChatClient:
                 except Exception as e:
                     print(e)
                 # add_mess_to_box()
-
+            text_widget.delete("1.0", "end")
 
         self.temp_img_send = self.render_img(main_bar_footer,"send.png",30,30,530,35,on_click=lambda _ : asyncio.create_task(add_mess()))
         self.update_scrollbar_visibility(__def__canvas_root,__def__scrollbar,__def__temp)    
