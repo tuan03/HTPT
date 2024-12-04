@@ -44,9 +44,9 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
         self.tick_time_userOfftine = {}
         self.room_users = {}
         self.users = [
-                        {'id': 1, 'username': 'u1', 'password': 'p1', 'fullname': 'Nguyễn Anh Tuấn'},
-                        {'id': 2, 'username': 'u2', 'password': 'p2', 'fullname': 'Hoàng Minh Tâm'},
-                        {'id': 3, 'username': 'lanhuong9', 'password': 'mypassword', 'fullname': 'Lân Hương Nguyễn'},
+                        {'id': 1, 'username': 'u1', 'password': 'u1', 'fullname': 'Nguyễn Anh Tuấn'},
+                        {'id': 2, 'username': 'u2', 'password': 'u2', 'fullname': 'Hoàng Minh Tâm'},
+                        {'id': 3, 'username': 'u3', 'password': 'u3', 'fullname': 'Lân Hương Nguyễn'},
                         {'id': 4, 'username': 'thanhson1', 'password': 'thanhson2024', 'fullname': 'Thành Sơn Lê'},
                         {'id': 5, 'username': 'tuananh88', 'password': 'tuananhpass', 'fullname': 'Tuấn Anh Lê'},
                         {'id': 6, 'username': 'quanghieu4', 'password': 'quanghieu789', 'fullname': 'Quang Hiếu Đoàn'},
@@ -353,6 +353,7 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
         
         # Lấy thời gian hiện tại
         current_time = str(datetime.now())
+        print(current_time)
         # Tạo tin nhắn mới
         new_message = {
             'message_id': new_message_id,
@@ -368,6 +369,7 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
         pmess['sender'] = cob if cob else {}
         sender_id = pmess.pop('sender_id', None)
         receiver = pmess.pop('receiver_id', None)
+        print(new_message)
         return pmess
     def add_message_to_group(self,group_id, sender_id, message):
         # Tìm nhóm theo group_id

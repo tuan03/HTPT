@@ -38,7 +38,7 @@ class ChatClient:
         self.__login_frame = None
         self.entry_username = None
         self.entry_password = None
-        self.channel = grpc.aio.insecure_channel('localhost:50051')
+        self.channel = grpc.aio.insecure_channel('192.168.1.111:50051')
         self.stub = chat_pb2_grpc.ChatServiceStub(self.channel)
         self.metadata =  None
         self.uid = None
@@ -89,27 +89,44 @@ class ChatClient:
         # Chạy ứng dụng
         self.__login_frame.mainloop()
     def time_ago(self,time_str):
-        # Chuyển chuỗi thời gian thành đối tượng datetime (bao gồm microseconds)
-        time_format = "%Y-%m-%d %H:%M:%S.%f"
-        time_obj = datetime.strptime(time_str, time_format)
+        try:
+            # Định dạng thời gian
+            time_formats = ["%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S"]
+            time_obj = None
 
-        # Lấy thời gian hiện tại
-        now = datetime.now()
+            # Thử chuyển đổi thời gian với các định dạng
+            for fmt in time_formats:
+                try:
+                    time_obj = datetime.strptime(time_str, fmt)
+                    break
+                except ValueError:
+                    continue
 
-        # Tính toán độ chênh lệch giữa thời gian hiện tại và thời gian đã cho
-        time_diff = now - time_obj
+            if not time_obj:
+                raise ValueError("Thời gian không đúng định dạng.")
 
-        # Nếu độ chênh lệch lớn hơn 1 tuần
-        if time_diff > timedelta(weeks=1):
-            return time_obj.strftime("%d/%m")  # Trả về ngày/tháng
-        if time_diff < timedelta(minutes=1):
-            return f"{time_diff.seconds} giây trước"
-        elif time_diff < timedelta(hours=1):
-            return f"{time_diff.seconds // 60} phút trước"
-        elif time_diff < timedelta(days=1):
-            return f"{time_diff.seconds // (60*60)} giờ trước"
-        else:
-            return f"{time_diff.days} ngày trước"
+            # Lấy thời gian hiện tại
+            now = datetime.now()
+
+            # Tính toán độ chênh lệch thời gian
+            time_diff = now - time_obj
+
+            # Kiểm tra các khoảng thời gian
+            if time_diff > timedelta(weeks=1):
+                if time_obj.year == now.year:
+                    return time_obj.strftime("%d/%m")  # Cùng năm: ngày/tháng
+                return time_obj.strftime("%d/%m/%Y")  # Khác năm: ngày/tháng/năm
+            if time_diff < timedelta(minutes=1):
+                return f"{time_diff.seconds} giây trước"
+            elif time_diff < timedelta(hours=1):
+                return f"{time_diff.seconds // 60} phút trước"
+            elif time_diff < timedelta(days=1):
+                return f"{time_diff.seconds // 3600} giờ trước"
+            else:
+                return f"{time_diff.days} ngày trước"
+
+        except Exception as e:
+            return f"Lỗi: {str(e)}"
     def confirm_name(self):
         root = tk.Tk()
         root.title("Nhập họ và tên")
