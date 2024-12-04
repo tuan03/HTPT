@@ -38,7 +38,7 @@ class ChatClient:
         self.__login_frame = None
         self.entry_username = None
         self.entry_password = None
-        self.channel = grpc.aio.insecure_channel('192.168.1.111:50051')
+        self.channel = grpc.aio.insecure_channel('192.168.1.11:50051')
         self.stub = chat_pb2_grpc.ChatServiceStub(self.channel)
         self.metadata =  None
         self.uid = None
@@ -638,7 +638,7 @@ class ChatClient:
             # Cập nhật kích thước của Canvas để chứa văn bản
             bbox = child_can.bbox("all")  # Lấy bounding box của văn bản
             child_can.config(width=bbox[2]+10, height=bbox[3]+40)
-            child_can.create_text(10, bbox[3]+10, anchor="nw", text=f"{self.time_ago(new_message.time)}", width=250, font=("Arial", 10), fill="black")
+            child_can.create_text(10, bbox[3]+10, anchor="nw", text=f"(Vừa xong)", width=250, font=("Arial", 10), fill="black")
             bbox = child_can.bbox("all")  # Lấy bounding box của văn bản
             child_can.config(width=bbox[2]+10, height=bbox[3])
             if new_message.sender.id != self.uid :
