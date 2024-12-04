@@ -62,9 +62,9 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
                 "title": "Nhóm học tập",
                 "members": [1, 2, 3, 4],
                 "messages": [
-                    {'message_id': 1, 'sender_id': 1, 'message': 'Chào mọi người!', 'time': '2024-12-01 10:00:00.626571', 'isRead': True},
-                    {'message_id': 2, 'sender_id': 2, 'message': 'Chào bạn, có gì mới không?', 'time': '2024-12-01 10:05:00.626571', 'isRead': False},
-                    {'message_id': 3, 'sender_id': 3, 'message': 'Cần giúp đỡ gì không?', 'time': '2024-12-01 10:10:00.626571', 'isRead': False}
+                    {'message_id': 1, 'sender_id': 1, 'message': 'Chào mọi người!', 'time': '2024-12-01 10:00:00.626571'},
+                    {'message_id': 2, 'sender_id': 2, 'message': 'Chào bạn, có gì mới không?', 'time': '2024-12-01 10:05:00.626571'},
+                    {'message_id': 3, 'sender_id': 3, 'message': 'Cần giúp đỡ gì không?', 'time': '2024-12-01 10:10:00.626571'}
                 ]
             },
             {
@@ -72,9 +72,9 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
                 "title": "Nhóm du lịch",
                 "members": [2, 3, 5, 6],
                 "messages": [
-                    {'message_id': 4, 'sender_id': 2, 'message': 'Ai muốn đi du lịch cuối tuần không?', 'time': '2024-12-01 11:00:00.626571', 'isRead': True},
-                    {'message_id': 5, 'sender_id': 5, 'message': 'Mình đi nhé! Đến đâu?', 'time': '2024-12-01 11:05:00.626571', 'isRead': True},
-                    {'message_id': 6, 'sender_id': 6, 'message': 'Đi đâu cũng được, mình theo các bạn!', 'time': '2024-12-01 11:10:00.626571', 'isRead': False}
+                    {'message_id': 4, 'sender_id': 2, 'message': 'Ai muốn đi du lịch cuối tuần không?', 'time': '2024-12-01 11:00:00.626571'},
+                    {'message_id': 5, 'sender_id': 5, 'message': 'Mình đi nhé! Đến đâu?', 'time': '2024-12-01 11:05:00.626571'},
+                    {'message_id': 6, 'sender_id': 6, 'message': 'Đi đâu cũng được, mình theo các bạn!', 'time': '2024-12-01 11:10:00.626571'}
                 ]
             },
             {
@@ -82,17 +82,29 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
                 "title": "Nhóm công việc",
                 "members": [1, 4, 7, 8],
                 "messages": [
-                    {'message_id': 7, 'sender_id': 1, 'message': 'Họp vào ngày mai nhé!', 'time': '2024-12-02 09:00:00.626571', 'isRead': True},
-                    {'message_id': 8, 'sender_id': 4, 'message': 'Chắc được rồi, giờ nào?', 'time': '2024-12-02 09:05:00.626571', 'isRead': True},
-                    {'message_id': 9, 'sender_id': 7, 'message': 'Họp vào sáng mai, ổn không?', 'time': '2024-12-02 09:10:00.626571', 'isRead': False}
+                    {'message_id': 7, 'sender_id': 1, 'message': 'Họp vào ngày mai nhé!', 'time': '2024-12-02 09:00:00.626571'},
+                    {'message_id': 8, 'sender_id': 4, 'message': 'Chắc được rồi, giờ nào?', 'time': '2024-12-02 09:05:00.626571'},
+                    {'message_id': 9, 'sender_id': 7, 'message': 'Họp vào sáng mai, ổn không?', 'time': '2024-12-02 09:10:00.626571'}
                 ]
             }
         ]
 
         self.messages_by_user = [
-                    {'message_id': 17, 'sender_id': 1, 'receiver_id': 2, 'message': 'Message 20', 'time': '2024-12-04 07:10:57.626571', 'isRead': False}
+                    {'message_id': 17, 'sender_id': 1, 'receiver_id': 2, 'message': 'Message 20', 'time': '2024-12-04 07:10:57.626571'}
         ]
         self.Room = {}
+    def GetGroupMembers(self, request, context):
+        group_id = request.group_id
+        # Tìm nhóm theo group_id
+        group = next((g for g in self.groups if g['group_id'] == int(group_id)), None)
+        if group is None:
+            return chat_pb2.GetGroupMembersResponse(members=member_usernames)
+        # Trả về danh sách tên người dùng của các thành viên
+        members = [
+            chat_pb2.Member(user_id = user['id'], username=user['username'], fullname=user['fullname'])
+            for user in self.users if user['id'] in group['members']
+        ]
+        return chat_pb2.GetGroupMembersResponse(members=members)
     def NewUser(self, request, context):
         username = request.username
         password = request.password
@@ -192,14 +204,16 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
             receiver_id = message.pop('receiver_id', None)
             result.append(message)
         return result
-    def get_user_groups(self,user_id, groups):#[{'group_id': 1, 'title': 'Nhóm học tập', 'last_message': {'message_id': 3, 'sender_id': 3, 'message': 'Cần giúp đỡ gì không?', 'time': '2025-12-01T10:10:00', 'isRead': False}}]
+    def get_user_groups(self,user_id, groups):#[{'group_id': 1, 'title': 'Nhóm học tập', 'last_message': {'message_id': 3, 'sender_id': 3, 'message': 'Cần giúp đỡ gì không?', 'time': '2025-12-01T10:10:00'}}]
         # Danh sách các nhóm mà người dùng tham gia
         user_groups = []
 
         for group in groups:
             if user_id in group["members"]:
-                # Lấy tin nhắn mới nhất trong nhóm
-                latest_message = max(group['messages'], key=lambda msg: datetime.fromisoformat(msg['time']))
+                if group['messages']:
+                    latest_message = max(group['messages'], key=lambda msg: datetime.fromisoformat(msg['time']))
+                else:
+                    latest_message = {"message_id": None, "sender_id": None, "message": "Chưa có tin nhắn", "time": str(datetime.now())}
                 user_groups.append({
                     "group_id": group["group_id"],
                     "title": group["title"],
@@ -287,7 +301,8 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
             data_room = {
                 "id": int(idRoom[1:]),
                 "typeM": typeM,
-                "messList": messList
+                "messList": messList,
+                "isInit": True
             }
 
             if 'p' in idRoom:
@@ -297,7 +312,6 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
                     data_room["lastTimeOnline"] = self.tick_time_userOfftine[user_id]
                 user = next((u for u in self.users if u['id'] == user_id), None)
                 data_room["title"] = user['fullname'] if user else None
-                self.mark_all_messages_as_read_from_sender(idUser,idRoom[1:])
             elif 'g' in idRoom:
                 group_id = int(idRoom[1:])
                 group = next((g for g in self.groups if g['group_id'] == group_id), None)
@@ -312,8 +326,7 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
                     await asyncio.sleep(1)
                     data_room = {
                         "id": int(idRoom[1:]),
-                        "typeM": typeM,
-                        "messList": None
+                        "typeM": typeM
                     }
 
                     if 'p' in idRoom:
@@ -346,8 +359,7 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
             'sender_id': sender,
             'receiver_id': receiver,
             'message': mess,
-            'time': current_time,
-            'isRead': False,  # Mặc định là chưa đọc
+            'time': current_time
         }    
         # Thêm tin nhắn mới vào danh sách
         self.messages_by_user.append(new_message)
@@ -374,8 +386,7 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
                 'message_id': new_message_id,
                 'sender_id': sender_id,
                 'message': message,
-                'time': current_time,
-                'isRead': False  # Tin nhắn mới mặc định là chưa đọc
+                'time': current_time
             }
             
             group['messages'].append(new_message)
@@ -400,10 +411,6 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
                         typeM = 'p',
                         newMess=newMess
                     ))
-                    if receiver_id  == i:
-                        print("=====")
-                        print(receiver_id,"---",i)
-                        self.mark_message_as_read(newMess['message_id'])
             elif request.HasField("group_id"):
                 group_id = request.group_id
                 roomHash = self.create_room_id(int(-1),int(group_id))
@@ -420,36 +427,48 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
             return Empty()
         except Exception as e:
             print(e)
-    def mark_all_messages_as_read_from_sender(self,receiver_id, sender_id):
-        for msg in self.messages_by_user:
-            if msg['receiver_id'] == int(receiver_id) and msg['sender_id'] == int(sender_id):
-                msg['isRead'] = True
-    def mark_message_as_read(self,message_id):
-        message = next((msg for msg in self.messages_by_user if msg['message_id'] == int(message_id)), None)
-        if message:
-            message['isRead'] = True
 
-    async def MarkAsSeen(self, request, context):
-        for message in self.messages:
-            if message.message_id == request.message_id:
-                if request.username not in message.seen_by:
-                    message.seen_by.append(request.username)
-                break
-        return Empty()
-
-    async def CreateGroup(self, request, context):
-        group_id = str(uuid.uuid4())
-        self.groups[group_id] = {
-            "name": request.group_name,
-            "members": {request.creator}
+    async def OutGroup(self,request,context):
+        uid = await self.authen(context)
+        group = next((group for group in self.groups if group['group_id'] == int(request.group_id)),None)
+        if group is None:
+            return chat_pb2.StatusResponse(status=False, message=f"Nhóm không tồn tại.")
+        if uid not in group['members']:
+            return chat_pb2.StatusResponse(status=False, message=f"Bạn không thuộc nhóm này.")
+        group['members'].remove(uid)
+        return chat_pb2.StatusResponse(status=True, message=f"Rời nhóm thành công.")
+    async def NewGroup(self,request,context):
+        uid = await self.authen(context)
+        print(list([gr['group_id'] for gr in self.groups]))
+        group_id = max(list([gr['group_id'] for gr in self.groups])) + 1
+        new_group = {
+            "group_id": group_id,
+            "title": request.title,
+            "members": [uid],
+            "messages": [{'message_id': 1, 'sender_id': uid, 'message': 'Nhóm được khởi tạo !!!', 'time': str(datetime.now())}
+               ]
         }
-        return GroupResponse(group_id=group_id, group_name=request.group_name, members=list(self.groups[group_id]["members"]))
+        self.groups.append(new_group)
+        return chat_pb2.StatusResponse(status=True, message=f"Tạo nhóm thành công.")
 
-    async def AddToGroup(self, request, context):
-        group = self.groups.get(request.group_id)
-        if group:
-            group["members"].add(request.username)
-        return GroupResponse(group_id=request.group_id, group_name=group["name"], members=list(group["members"]))
+    async def AddUserToGroup(self,request,context):
+        uid = await self.authen(context)
+        group_id = request.group_id
+        user = next((user for user in self.users if user['username'] == request.username),None)
+        if user is None:
+            return chat_pb2.StatusResponse(status=False, message=f"Người dùng không tồn tại.")
+        user_id = user['id']
+        print(group_id,user_id,request.username)
+        group = next((group for group in self.groups if group['group_id'] == int(group_id)),None)
+        if group is None:
+            return chat_pb2.StatusResponse(status=False, message=f"Nhóm không tồn tại.")
+        if uid not in group['members']:
+            return chat_pb2.StatusResponse(status=False, message=f"Bạn không thuộc nhóm này.")
+        if user_id in group['members']:
+            return chat_pb2.StatusResponse(status=False, message=f"Người dùng đã tham gia nhóm này.")
+        group['members'].append(user_id)
+        return chat_pb2.StatusResponse(status=True, message=f"Thêm thành viên thành công.")
+
     async def print_abc(self):
         while True:
             log_message = "\n\n\n" + "="*38 + "\n"

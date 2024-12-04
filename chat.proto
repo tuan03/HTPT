@@ -9,8 +9,41 @@ service ChatService {
   rpc JoinRoomChat (JoinRoomRequest) returns (stream DataRoom);
   rpc SendMessage (SendMessageRequest) returns (google.protobuf.Empty); // Send a message
   rpc Login (LoginRequest) returns (LoginResponse);
-
+  rpc GetGroupMembers (GetGroupMembersRequest) returns (GetGroupMembersResponse);
+  rpc NewGroup (NewGroupRequest) returns (StatusResponse);
+  rpc AddUserToGroup (AddUserToGroupRequest) returns (StatusResponse);
+  rpc OutGroup (OutGroupRequest) returns (StatusResponse);
 }
+
+message GetGroupMembersRequest {
+  int32 group_id = 1;
+}
+
+// Định nghĩa message để trả về kết quả
+message GetGroupMembersResponse {
+  repeated Member members = 1;  // Danh sách các thành viên (username)
+}
+message Member{
+  int32 user_id = 1;
+  string username = 2;
+  string fullname = 3;
+}
+message NewGroupRequest {
+  string title = 1;
+}
+message StatusResponse{
+  bool status = 1;
+  string message = 2;
+}
+message AddUserToGroupRequest{
+  int32 group_id = 1;
+  string username = 2;
+}
+message OutGroupRequest{
+  int32 group_id = 1;
+}
+
+
 message LoginRequest {
   string username = 1; // Tên tài khoản
   string password = 2; // Mật khẩu
@@ -41,14 +74,14 @@ message DataRoom {
   optional bool isActive = 5;
   optional string title = 6;
   optional ItemMessage newMess = 7;
+  optional bool isInit = 8;
 }
 
 message ItemMessage {
   int32 message_id = 1;  // ID của tin nhắn
   string message = 2;     // Nội dung tin nhắn
   string time = 3;        // Thời gian tin nhắn
-  bool isRead = 4;        // Trạng thái đọc tin nhắn
-  User sender = 6;
+  User sender = 4;
 }
 
 message ChatUpdate {
@@ -62,7 +95,6 @@ message LastMessage {
     int32 sender_id = 2;        // ID người gửi
     string message = 3;         // Nội dung tin nhắn
     string time = 4;            // Thời gian gửi tin nhắn (ISO 8601)
-    bool isRead = 5;            // Trạng thái đọc của tin nhắn
 }
 message UserGroups {
     int32 group_id = 1;         // ID của nhóm
@@ -73,9 +105,8 @@ message LastestMessagesList {
   int32 message_id = 1;  // ID của tin nhắn
   string message = 2;     // Nội dung tin nhắn
   string time = 3;        // Thời gian gửi tin nhắn (chuỗi theo định dạng ISO 8601)
-  bool isRead = 4;        // Trạng thái đọc của tin nhắn
-  bool isMe = 5;          // Xác định liệu tin nhắn là của người gửi hiện tại hay không
-  User col = 6;
+  bool isMe = 4;          // Xác định liệu tin nhắn là của người gửi hiện tại hay không
+  User col = 5;
 }
 message User {
     int32 id = 1;

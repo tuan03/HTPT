@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import ttk
 from PIL import Image, ImageTk
 from tkinter import filedialog
 from tkinter import messagebox
@@ -112,24 +113,14 @@ class ChatClient:
     def confirm_name(self):
         root = tk.Tk()
         root.title("Nhập họ và tên")
-
-        # Lấy kích thước màn hình
         screen_width = root.winfo_screenwidth()
         screen_height = root.winfo_screenheight()
-
-        # Kích thước cửa sổ
         window_width = 400
         window_height = 200
-
-        # Tính toán vị trí để cửa sổ nằm giữa màn hình
         position_x = (screen_width - window_width) // 2
         position_y = (screen_height - window_height) // 2
-
-        # Đặt kích thước và vị trí cho cửa sổ
         root.geometry(f"{window_width}x{window_height}+{position_x}+{position_y}")
         root.resizable(False, False)
-
-        # Nhãn thông báo
         label_message = tk.Label(
             root,
             text="Tài khoản chưa được khởi tạo trên hệ thống.\nNhập họ và tên của bạn:",
@@ -137,12 +128,8 @@ class ChatClient:
             pady=10
         )
         label_message.pack()
-
-        # Tạo ô nhập họ và tên
         self.entry_fullname = tk.Entry(root, width=40)
         self.entry_fullname.pack(pady=10)
-
-        # Nút xác nhận
         btn_confirm = tk.Button(
             root,
             text="Xác nhận",
@@ -150,7 +137,6 @@ class ChatClient:
             width=15
         )
         btn_confirm.pack(pady=10)
-
         root.mainloop()
     def handle_new_user(self,root):
         username = self.entry_username.get()
@@ -191,8 +177,6 @@ class ChatClient:
         else:
             messagebox.showwarning("Cảnh báo", "Vui lòng nhập Tài khoản và Mật khẩu!")
     async def connect(self):
-        # Tạo kết nối gRPC đến server
-        
         try:
             # Streaming RPC, so we need to handle each message in a loop
             async for response in self.stub.Connect(
@@ -220,9 +204,8 @@ class ChatClient:
                 chat_pb2.JoinRoomRequest(idRoom=room),
                 metadata=self.metadata
             ):
-
-                if response.messList:
-                    add_chat_func, set_title_func, set_active_func = self.render_mess(response,"test")
+                if response.HasField('isInit'):
+                    add_chat_func, set_title_func, set_active_func = self.render_mess(response,"test",response.typeM,response.id)
                 if response.HasField('newMess'):
                     add_chat_func(response.newMess)
                 if response.HasField('title'):
@@ -237,7 +220,7 @@ class ChatClient:
     async def run(self):
         self.root = tk.Tk()
         self.root.title("CHATTING")
-        self.width = 1200
+        self.width = 900
         self.height = 650
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
@@ -276,6 +259,38 @@ class ChatClient:
                 scrollbar.pack_forget()
         else:
             scrollbar.pack_forget() 
+    def handle_create_group(self,root):
+        groupName = self.entry_group_name.get()
+        if not groupName: 
+            return
+        loop = asyncio.get_event_loop()
+        data = loop.run_until_complete(self.stub.NewGroup(
+                    chat_pb2.NewGroupRequest(title=groupName),metadata=self.metadata
+                ))  
+        if data.status :
+            messagebox.showinfo("Thành công", data.message)  
+            root.destroy()
+        else:
+            messagebox.showwarning("Cảnh báo", data.message)    
+
+    def UI_create_group(self):
+        root = tk.Toplevel(self.root)
+        root.title("Tạo nhóm")
+        screen_width = root.winfo_screenwidth()
+        screen_height = root.winfo_screenheight()
+        window_width = 300
+        window_height = 150
+        position_x = (screen_width - window_width) // 2
+        position_y = (screen_height - window_height) // 2
+        root.geometry(f"{window_width}x{window_height}+{position_x}+{position_y}")
+        root.resizable(False, False)
+        label = tk.Label(root, text="Nhập tên nhóm:", font=("Arial", 12))
+        label.pack(pady=10)
+        self.entry_group_name = tk.Entry(root, font=("Arial", 12), width=30)
+        self.entry_group_name.pack(pady=5)
+        button_confirm = tk.Button(root, text="Xác nhận", font=("Arial", 12), command=lambda root = root : self.handle_create_group(root))
+        button_confirm.pack(pady=10)
+
     def init_ui(self):
         left_bar = tk.Frame(self.root, width=300, height=self.height, bg="white", borderwidth=0, highlightthickness=0)
         left_bar.place(x=0,y=0)
@@ -286,15 +301,21 @@ class ChatClient:
         self.create_border(left_bar_header,btype="B")
         left_bar_header.create_text(10,  13,anchor='nw', text=self.fullname, fill="black",font=("Arial", 15))
 
-        __temp = self.render_img(left_bar_header,"group-add.png",30,30,240,10,on_click=lambda e : print("cl"))
+        self.group_add_png = self.render_img(left_bar_header,"group-add.png",30,30,240,10,on_click=lambda e : self.UI_create_group())
         text_id =  left_bar_header.create_text(10,  50,anchor='nw', text=f"Tin nhắn", fill="black",font=("Arial", 12)) 
         left_bar_header.tag_bind(text_id, "<Button-1>", lambda x: self.render_list_bar(RType='m'))
+        left_bar_header.tag_bind(text_id, "<Enter>", self.on_enter)
+        left_bar_header.tag_bind(text_id, "<Leave>", self.on_leave)
         self.create_line(left_bar_header,10,70,70,70,width=2)
         text_id  = left_bar_header.create_text(10 + 90,  50,anchor='nw', text=f"Nhóm", fill="black",font=("Arial", 12))  
         left_bar_header.tag_bind(text_id, "<Button-1>", lambda x: self.render_list_bar(RType='g'))
+        left_bar_header.tag_bind(text_id, "<Enter>", self.on_enter)
+        left_bar_header.tag_bind(text_id, "<Leave>", self.on_leave)
         self.create_line(left_bar_header,100,70,140,70,width=2)
         text_id  = left_bar_header.create_text(10 + 160,  50,anchor='nw', text=f"Đang hoạt động", fill="black",font=("Arial", 12))  
         left_bar_header.tag_bind(text_id, "<Button-1>", lambda x: self.render_list_bar(RType='o'))
+        left_bar_header.tag_bind(text_id, "<Enter>", self.on_enter)
+        left_bar_header.tag_bind(text_id, "<Leave>", self.on_leave)
         self.create_line(left_bar_header,170,70,280,70,width=2)
         w,h = self.get_w_h(left_bar_header)
         w2,h2 = self.get_w_h(left_bar)
@@ -323,7 +344,7 @@ class ChatClient:
         body_bar = tk.Frame(self.root,width=self.width - x, height=self.height , bg="white", borderwidth=0, highlightthickness=0)
         body_bar.place(x=x+1,y=0)
         self.body_bar = body_bar
-
+        self.render_background()
         self.temp_img_send = None
         
     def get_w_h(self,w):
@@ -367,28 +388,23 @@ class ChatClient:
         bbox = self.__def__sub_canvas.bbox("all") 
         self.__def__sub_canvas.config(width=0, height=0)
         if self.typeList == 'm':
-            for index, row in enumerate(self.recent_user_inbox): # [{'message_id': 21, 'message': 'Message 21', 'time': '2024-12-03', 'isRead': True, 'isMe': False, 'col': {'id': 2, 'username': 'hoangminh7', 'password': 'password123', 'fullname': 'Hoàng Minh Tâm'}}]
+            for index, row in enumerate(self.recent_user_inbox): # [{'message_id': 21, 'message': 'Message 21', 'time': '2024-12-03', 'isMe': False, 'col': {'id': 2, 'username': 'hoangminh7', 'password': 'password123', 'fullname': 'Hoàng Minh Tâm'}}]
                 child_can = tk.Canvas(self.__def__sub_canvas, width=self._w_temp, height=70, bg="white",borderwidth=0, highlightthickness=0)
                 self.__def__sub_canvas.create_window(0, (index)*70, window=child_can,anchor='nw')
                 child_can.create_text(10,  10,anchor='nw', text=row.col.fullname, fill="black",font=("Arial", 15))
-                if row.isRead == True: 
-                    child_can.create_text(10,  40,anchor='nw', text=self.truncate_text(row.message, 45), fill="black",font=("Arial", 10))
-                else:  
-                    child_can.create_text(10,  40,anchor='nw', text=self.truncate_text(row.message, 45), fill="black",font=("Arial", 10,"bold"))
+                child_can.create_text(10,  40,anchor='nw', text=self.truncate_text(row.message, 45), fill="black",font=("Arial", 10))
                 child_can.create_text(self._w_temp-80,  10,anchor='nw', text=self.time_ago(row.time), fill="black",font=("Arial", 10)) 
-                # datamess = [{'content':"Xin chào tất cả các bạn, tôi đến từ Xin chào tất cả các bạn, tôi đến từ Xin chào tất cả các bạn, tôi đến từ Xin chào tất cả các bạn, tất cả các bạn, tôi đến từ Xin chào tất cả các bạn, tôi đến từ Xin chào tất cả các bạn, tôi đến từ Xin chào tất cả các bạn tôi đến từ Xin chào tất cả các bạn, tôi đến từ ", 'isMe': True, 'time': '11/12', 'isRead':True},{'content':"Xin chào", 'isMe': False, 'time': '11/12', 'isRead':True}]*1
                 child_can.bind("<Button-1>", lambda x , id = row.col.id: asyncio.create_task(self.joinRoomChat(('p'+str(id)))))
                 child_can.update_idletasks()
                 child_can.create_line(0, 69, self._w_temp, 69, fill="black", width=1)
         elif self.typeList == 'g':
-            for index, row in enumerate(self.usergroups): # [{'message_id': 21, 'message': 'Message 21', 'time': '2024-12-03', 'isRead': True, 'isMe': False, 'col': {'id': 2, 'username': 'hoangminh7', 'password': 'password123', 'fullname': 'Hoàng Minh Tâm'}}]
+            for index, row in enumerate(self.usergroups): # [{'message_id': 21, 'message': 'Message 21', 'time': '2024-12-03', 'isMe': False, 'col': {'id': 2, 'username': 'hoangminh7', 'password': 'password123', 'fullname': 'Hoàng Minh Tâm'}}]
                 child_can = tk.Canvas(self.__def__sub_canvas, width=self._w_temp, height=70, bg="white",borderwidth=0, highlightthickness=0)
                 self.__def__sub_canvas.create_window(0, (index)*70, window=child_can,anchor='nw')
                 child_can.create_text(10,  10,anchor='nw', text=row.title, fill="black",font=("Arial", 15)) 
                 
                 child_can.create_text(10,  40,anchor='nw', text=self.truncate_text(row.last_message.message, 45), fill="black",font=("Arial", 10)) 
                 child_can.create_text(self._w_temp-80,  10,anchor='nw', text=self.time_ago(row.last_message.time), fill="black",font=("Arial", 10)) 
-                # datamess = [{'content':"Xin chào tất cả các bạn, tôi đến từ Xin chào tất cả các bạn, tôi đến từ Xin chào tất cả các bạn, tôi đến từ Xin chào tất cả các bạn, tất cả các bạn, tôi đến từ Xin chào tất cả các bạn, tôi đến từ Xin chào tất cả các bạn, tôi đến từ Xin chào tất cả các bạn tôi đến từ Xin chào tất cả các bạn, tôi đến từ ", 'isMe': True, 'time': '11/12', 'isRead':True},{'content':"Xin chào", 'isMe': False, 'time': '11/12', 'isRead':True}]*1
                 child_can.bind("<Button-1>", lambda x , id = row.group_id: asyncio.create_task(self.joinRoomChat('g'+str(id))))
                 child_can.update_idletasks()
                 child_can.create_line(0, 69, self._w_temp, 69, fill="black", width=1)
@@ -397,7 +413,6 @@ class ChatClient:
                 child_can = tk.Canvas(self.__def__sub_canvas, width=self._w_temp, height=70, bg="white",borderwidth=0, highlightthickness=0)
                 self.__def__sub_canvas.create_window(0, (index)*70, window=child_can,anchor='nw')
                 child_can.create_text(self._w_temp//2,  70//2,anchor='center', text=row['fullname'], fill="black",font=("Arial", 15))
-                datamess = [{'content':"Xin chào tất cả các bạn, tôi đến từ Xin chào tất cả các bạn, tôi đến từ Xin chào tất cả các bạn, tôi đến từ Xin chào tất cả các bạn, tất cả các bạn, tôi đến từ Xin chào tất cả các bạn, tôi đến từ Xin chào tất cả các bạn, tôi đến từ Xin chào tất cả các bạn tôi đến từ Xin chào tất cả các bạn, tôi đến từ ", 'isMe': True, 'time': '11/12', 'isRead':True},{'content':"Xin chào", 'isMe': False, 'time': '11/12', 'isRead':True}]*1
                 child_can.bind("<Button-1>", lambda x ,  id = row['id']: asyncio.create_task(self.joinRoomChat('p'+str(id))))
                 child_can.update_idletasks()
                 child_can.create_line(0, 69, self._w_temp, 69, fill="black", width=1)
@@ -408,8 +423,91 @@ class ChatClient:
         self.__def__sub_canvas.update_idletasks()
         self.__def__canvas_root.config(scrollregion=self.__def__canvas_root.bbox("all"))
         self.update_scrollbar_visibility(self.__def__canvas_root,self.__def__scrollbar,self.__def__temp)
-    
-    def render_mess(self,dataG,name):
+    def render_background(self):
+        # Tải ảnh từ file (có thể là .jpg, .png, ...)
+        image_path = "backgroud.jpg"  # Thay đường dẫn ảnh ở đây
+        image = Image.open(image_path)
+        x,y = self.get_w_h(self.left_bar)
+        image = image.resize((self.width - x, self.height))  # Kích thước ảnh mới
+        
+        # Chuyển ảnh từ PIL sang dạng có thể sử dụng trong Tkinter
+        image_tk = ImageTk.PhotoImage(image)
+
+        # Label hiển thị ảnh
+        label_image = tk.Label(self.body_bar, image=image_tk)
+        label_image.image = image_tk  # Giữ tham chiếu đến ảnh để tránh bị thu hồi
+        label_image.pack()
+    def handle_add_member(self, root,group_id):
+        username = self.entry_username_add.get()
+        if username:  # Kiểm tra xem ô nhập không rỗng
+            loop = asyncio.get_event_loop()
+            data = loop.run_until_complete(self.stub.AddUserToGroup(
+                        chat_pb2.AddUserToGroupRequest(group_id=group_id, username=username),
+                        metadata=self.metadata
+                    ))  
+            if data.status :
+                messagebox.showinfo("Thành công", data.message)
+                root.destroy()
+            else:
+                messagebox.showwarning("Cảnh báo", data.message)   
+                root.lift() 
+        else:
+            messagebox.showwarning("Cảnh báo", "Vui lòng nhập username muốn thêm")
+            root.lift()
+        
+    def add_member_to_group(self,group_id):
+        root = tk.Toplevel(self.root)
+        root.title("Thêm thành viên vào nhóm")
+        root.lift()
+        screen_width = root.winfo_screenwidth()
+        screen_height = root.winfo_screenheight()
+        window_width = 300
+        window_height = 150
+        position_x = (screen_width - window_width) // 2
+        position_y = (screen_height - window_height) // 2
+        root.geometry(f"{window_width}x{window_height}+{position_x}+{position_y}")
+        root.resizable(False, False)
+        label = tk.Label(root, text="Nhập username:", font=("Arial", 12))
+        label.pack(pady=10)
+        self.entry_username_add = tk.Entry(root, font=("Arial", 12), width=30)
+        self.entry_username_add.pack(pady=5)
+        button_confirm = tk.Button(root, text="Thêm", font=("Arial", 12), command=lambda root = root : self.handle_add_member(root,group_id))
+        button_confirm.pack(pady=10)
+    def quit_group(self):
+        response = messagebox.askyesno("Xác nhận", "Bạn có muốn rời nhóm không?")
+        if response:
+            print("Bạn chọn rời")
+        
+    def view_member(self,group_id):
+        loop = asyncio.get_event_loop()
+        data = loop.run_until_complete(self.stub.GetGroupMembers(
+                    chat_pb2.GetGroupMembersRequest(group_id=group_id),
+                    metadata=self.metadata
+                ))  
+        root = tk.Toplevel(self.root)
+        root.title("Danh sách người dùng")
+        root.geometry("600x400")
+        # Tạo bảng
+        tree = ttk.Treeview(root, columns=("ID", "Username", "Fullname"), show="headings")
+
+        # Định dạng các cột
+        tree.heading("ID", text="ID")
+        tree.heading("Username", text="Username")
+        tree.heading("Fullname", text="Fullname")
+
+        # Định dạng chiều rộng cột
+        tree.column("ID", width=100, anchor="center")
+        tree.column("Username", width=150, anchor="center")
+        tree.column("Fullname", width=200, anchor="center")
+
+        # Thêm dữ liệu vào bảng
+        for user in data.members:
+            tree.insert("", "end", values=(user.user_id, user.username, user.fullname))
+
+        # Đặt bảng vào cửa sổ Tkinter
+        tree.pack(padx=10, pady=10, expand=True)
+
+    def render_mess(self,dataG,name,typeRoom,mid):
         data = dataG.messList
         body_bar = self.body_bar
         height = self.height
@@ -422,13 +520,39 @@ class ChatClient:
         main_bar_header = tk.Canvas(main_bar, width=width-x, height=80, bg="white", borderwidth=0, highlightthickness=0)
         main_bar_header.place(x=0, y=0)
         self.create_border(main_bar_header,btype="B")
-        text_title_id  = main_bar_header.create_text(20,  20,anchor='nw', text="", fill="black",font=("Arial", 15)) 
-        text_status_id = main_bar_header.create_text(30,  45,anchor='nw', text="", fill="black",font=("Arial", 13)) 
+        text_title_id  = main_bar_header.create_text(20,  20,anchor='nw', text="", fill="black",font=("Arial", 15))
+        
+        text_status_id = None
+        
+        if 'p' in typeRoom:
+            text_status_id = main_bar_header.create_text(30,  45,anchor='nw', text="", fill="black",font=("Arial", 13)) 
+        elif 'g' in typeRoom:
+            button1 = tk.Button(self.root, text="Danh sách thành viên", font=("Arial", 9), fg="black", bg="white", 
+                    relief="solid", bd=1, command=lambda : self.view_member(mid))
+            main_bar_header.create_window(30, 50, window=button1, anchor='nw')
+            
+            
+            button2 = tk.Button(self.root, text="Thêm thành viên", font=("Arial", 9), fg="black", bg="white", 
+                    relief="solid", bd=1, command=lambda : self.add_member_to_group(mid))
+            main_bar_header.create_window(200, 50, window=button2, anchor='nw')
+
+            # button3 = tk.Button(self.root, text="Rời khỏi nhóm", font=("Arial", 9), fg="black", bg="white", 
+            #         relief="solid", bd=1, command=self.quit_group)
+            # main_bar_header.create_window(350, 50, window=button3, anchor='nw')
+            # button3.bind("<Enter>", self.on_enter)
+            # button3.bind("<Leave>", self.on_leave)
+
+            button1.bind("<Enter>", self.on_enter)
+            button1.bind("<Leave>", self.on_leave)
+            button2.bind("<Enter>", self.on_enter)
+            button2.bind("<Leave>", self.on_leave)
+            
         def render_active( isActive = None, lastTimeOnline = None):
-            if isActive:
-                main_bar_header.itemconfig(text_status_id, text="Đang trực tuyến")
-            elif isActive == False and lastTimeOnline:
-                main_bar_header.itemconfig(text_status_id, text=f"Ngoại tuyến {self.time_ago(lastTimeOnline)}")
+            if text_status_id is not None:
+                if isActive:
+                    main_bar_header.itemconfig(text_status_id, text="Đang trực tuyến")
+                elif isActive == False and lastTimeOnline:
+                    main_bar_header.itemconfig(text_status_id, text=f"Ngoại tuyến {self.time_ago(lastTimeOnline)}")
         def render_title(title):
             main_bar_header.itemconfig(text_title_id, text=title)
             
@@ -450,11 +574,15 @@ class ChatClient:
             if bbox2 is None:
                 bbox2 = (0,0,0,0)
             child_can = tk.Canvas(__def__sub_canvas,  bg="white", highlightthickness=0,relief="solid",bd="1")
-            child_can.create_text(10, 10, anchor="nw", text=row.message, width=250, font=("Arial", 12), fill="black")
+            if row.sender.id != self.uid :
+                child_can.create_text(10, 10, anchor="nw", text=f"gửi bởi: {row.sender.fullname}", width=250, font=("Arial", 9), fill="black")
+            else:
+                child_can.create_text(10, 10, anchor="nw", text=f"gửi bởi: bạn", width=250, font=("Arial", 9), fill="black")
+            child_can.create_text(10, 30, anchor="nw", text=row.message, width=250, font=("Arial", 12), fill="black")
             # Cập nhật kích thước của Canvas để chứa văn bản
             bbox = child_can.bbox("all")  # Lấy bounding box của văn bản
             child_can.config(width=bbox[2]+10, height=bbox[3]+40)
-            child_can.create_text(10, bbox[3]+10, anchor="nw", text=f"{self.time_ago(row.time)} {row.isRead}", width=250, font=("Arial", 10), fill="black")
+            child_can.create_text(10, bbox[3]+10, anchor="nw", text=f"{self.time_ago(row.time)}", width=250, font=("Arial", 10), fill="black")
             bbox = child_can.bbox("all")  # Lấy bounding box của văn bản
             child_can.config(width=bbox[2]+10, height=bbox[3])
             if row.sender.id != self.uid :
@@ -463,7 +591,10 @@ class ChatClient:
                 __def__sub_canvas.create_window(_w_temp - bbox[2]-30, bbox2[3] + 10, window=child_can,anchor='nw')
         __def__sub_canvas.update_idletasks()
         bbox2 = __def__sub_canvas.bbox("all")
-        __def__sub_canvas.config( height=bbox2[3]+10)
+        if bbox2 is None:
+            __def__sub_canvas.config( height=10)
+        else:    
+            __def__sub_canvas.config( height=bbox2[3]+10)
         __def__canvas_root.create_window((1, 10), window=__def__sub_canvas, anchor=tk.NW)
         __def__sub_canvas.update_idletasks()
         __def__canvas_root.config(scrollregion=__def__canvas_root.bbox("all"))
@@ -490,7 +621,7 @@ class ChatClient:
             # Cập nhật kích thước của Canvas để chứa văn bản
             bbox = child_can.bbox("all")  # Lấy bounding box của văn bản
             child_can.config(width=bbox[2]+10, height=bbox[3]+40)
-            child_can.create_text(10, bbox[3]+10, anchor="nw", text=f"{self.time_ago(new_message.time)} (Đã xem)", width=250, font=("Arial", 10), fill="black")
+            child_can.create_text(10, bbox[3]+10, anchor="nw", text=f"{self.time_ago(new_message.time)}", width=250, font=("Arial", 10), fill="black")
             bbox = child_can.bbox("all")  # Lấy bounding box của văn bản
             child_can.config(width=bbox[2]+10, height=bbox[3])
             if new_message.sender.id != self.uid :
@@ -511,6 +642,8 @@ class ChatClient:
 
         async def add_mess():
             message = text_widget.get("1.0", "end-1c")
+            if not message:
+                return
             # print(message)
             if dataG.typeM == 'p':
                 try:
