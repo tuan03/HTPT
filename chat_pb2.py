@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\nchat.proto\x12\x04\x63hat\x1a\x1bgoogle/protobuf/empty.proto\"2\n\x0cLoginRequest\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\"_\n\rLoginResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\x12\r\n\x05token\x18\x03 \x01(\t\x12\x0b\n\x03uid\x18\x04 \x01(\x05\x12\x10\n\x08\x66ullname\x18\x05 \x01(\t\"!\n\x0fJoinRoomRequest\x12\x0e\n\x06idRoom\x18\x01 \x01(\t\"\xf1\x01\n\x08\x44\x61taRoom\x12\n\n\x02id\x18\x01 \x01(\x05\x12\r\n\x05typeM\x18\x02 \x01(\t\x12#\n\x08messList\x18\x03 \x03(\x0b\x32\x11.chat.ItemMessage\x12\x1b\n\x0elastTimeOnline\x18\x04 \x01(\tH\x00\x88\x01\x01\x12\x15\n\x08isActive\x18\x05 \x01(\x08H\x01\x88\x01\x01\x12\x12\n\x05title\x18\x06 \x01(\tH\x02\x88\x01\x01\x12\'\n\x07newMess\x18\x07 \x01(\x0b\x32\x11.chat.ItemMessageH\x03\x88\x01\x01\x42\x11\n\x0f_lastTimeOnlineB\x0b\n\t_isActiveB\x08\n\x06_titleB\n\n\x08_newMess\"l\n\x0bItemMessage\x12\x12\n\nmessage_id\x18\x01 \x01(\x05\x12\x0f\n\x07message\x18\x02 \x01(\t\x12\x0c\n\x04time\x18\x03 \x01(\t\x12\x0e\n\x06isRead\x18\x04 \x01(\x08\x12\x1a\n\x06sender\x18\x06 \x01(\x0b\x32\n.chat.User\"\x89\x01\n\nChatUpdate\x12 \n\x0conline_users\x18\x01 \x03(\x0b\x32\n.chat.User\x12\x34\n\x11recent_user_inbox\x18\x02 \x03(\x0b\x32\x19.chat.LastestMessagesList\x12#\n\tgroupmess\x18\x03 \x03(\x0b\x32\x10.chat.UserGroups\"c\n\x0bLastMessage\x12\x12\n\nmessage_id\x18\x01 \x01(\x05\x12\x11\n\tsender_id\x18\x02 \x01(\x05\x12\x0f\n\x07message\x18\x03 \x01(\t\x12\x0c\n\x04time\x18\x04 \x01(\t\x12\x0e\n\x06isRead\x18\x05 \x01(\x08\"V\n\nUserGroups\x12\x10\n\x08group_id\x18\x01 \x01(\x05\x12\r\n\x05title\x18\x02 \x01(\t\x12\'\n\x0clast_message\x18\x03 \x01(\x0b\x32\x11.chat.LastMessage\"\x7f\n\x13LastestMessagesList\x12\x12\n\nmessage_id\x18\x01 \x01(\x05\x12\x0f\n\x07message\x18\x02 \x01(\t\x12\x0c\n\x04time\x18\x03 \x01(\t\x12\x0e\n\x06isRead\x18\x04 \x01(\x08\x12\x0c\n\x04isMe\x18\x05 \x01(\x08\x12\x17\n\x03\x63ol\x18\x06 \x01(\x0b\x32\n.chat.User\"H\n\x04User\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x10\n\x08username\x18\x02 \x01(\t\x12\x10\n\x08password\x18\x03 \x01(\t\x12\x10\n\x08\x66ullname\x18\x04 \x01(\t\"Z\n\x12SendMessageRequest\x12\x0f\n\x07message\x18\x01 \x01(\t\x12\x15\n\x0breceiver_id\x18\x02 \x01(\x05H\x00\x12\x12\n\x08group_id\x18\x03 \x01(\x05H\x00\x42\x08\n\x06target2\xf0\x01\n\x0b\x43hatService\x12\x35\n\x07\x43onnect\x12\x16.google.protobuf.Empty\x1a\x10.chat.ChatUpdate0\x01\x12\x37\n\x0cJoinRoomChat\x12\x15.chat.JoinRoomRequest\x1a\x0e.chat.DataRoom0\x01\x12?\n\x0bSendMessage\x12\x18.chat.SendMessageRequest\x1a\x16.google.protobuf.Empty\x12\x30\n\x05Login\x12\x12.chat.LoginRequest\x1a\x13.chat.LoginResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\nchat.proto\x12\x04\x63hat\x1a\x1bgoogle/protobuf/empty.proto\"2\n\x0cLoginRequest\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\"F\n\x0eNewUserRequest\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\x12\x10\n\x08\x66ullname\x18\x03 \x01(\t\"_\n\rLoginResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\x12\r\n\x05token\x18\x03 \x01(\t\x12\x0b\n\x03uid\x18\x04 \x01(\x05\x12\x10\n\x08\x66ullname\x18\x05 \x01(\t\"!\n\x0fJoinRoomRequest\x12\x0e\n\x06idRoom\x18\x01 \x01(\t\"\xf1\x01\n\x08\x44\x61taRoom\x12\n\n\x02id\x18\x01 \x01(\x05\x12\r\n\x05typeM\x18\x02 \x01(\t\x12#\n\x08messList\x18\x03 \x03(\x0b\x32\x11.chat.ItemMessage\x12\x1b\n\x0elastTimeOnline\x18\x04 \x01(\tH\x00\x88\x01\x01\x12\x15\n\x08isActive\x18\x05 \x01(\x08H\x01\x88\x01\x01\x12\x12\n\x05title\x18\x06 \x01(\tH\x02\x88\x01\x01\x12\'\n\x07newMess\x18\x07 \x01(\x0b\x32\x11.chat.ItemMessageH\x03\x88\x01\x01\x42\x11\n\x0f_lastTimeOnlineB\x0b\n\t_isActiveB\x08\n\x06_titleB\n\n\x08_newMess\"l\n\x0bItemMessage\x12\x12\n\nmessage_id\x18\x01 \x01(\x05\x12\x0f\n\x07message\x18\x02 \x01(\t\x12\x0c\n\x04time\x18\x03 \x01(\t\x12\x0e\n\x06isRead\x18\x04 \x01(\x08\x12\x1a\n\x06sender\x18\x06 \x01(\x0b\x32\n.chat.User\"\x89\x01\n\nChatUpdate\x12 \n\x0conline_users\x18\x01 \x03(\x0b\x32\n.chat.User\x12\x34\n\x11recent_user_inbox\x18\x02 \x03(\x0b\x32\x19.chat.LastestMessagesList\x12#\n\tgroupmess\x18\x03 \x03(\x0b\x32\x10.chat.UserGroups\"c\n\x0bLastMessage\x12\x12\n\nmessage_id\x18\x01 \x01(\x05\x12\x11\n\tsender_id\x18\x02 \x01(\x05\x12\x0f\n\x07message\x18\x03 \x01(\t\x12\x0c\n\x04time\x18\x04 \x01(\t\x12\x0e\n\x06isRead\x18\x05 \x01(\x08\"V\n\nUserGroups\x12\x10\n\x08group_id\x18\x01 \x01(\x05\x12\r\n\x05title\x18\x02 \x01(\t\x12\'\n\x0clast_message\x18\x03 \x01(\x0b\x32\x11.chat.LastMessage\"\x7f\n\x13LastestMessagesList\x12\x12\n\nmessage_id\x18\x01 \x01(\x05\x12\x0f\n\x07message\x18\x02 \x01(\t\x12\x0c\n\x04time\x18\x03 \x01(\t\x12\x0e\n\x06isRead\x18\x04 \x01(\x08\x12\x0c\n\x04isMe\x18\x05 \x01(\x08\x12\x17\n\x03\x63ol\x18\x06 \x01(\x0b\x32\n.chat.User\"H\n\x04User\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x10\n\x08username\x18\x02 \x01(\t\x12\x10\n\x08password\x18\x03 \x01(\t\x12\x10\n\x08\x66ullname\x18\x04 \x01(\t\"Z\n\x12SendMessageRequest\x12\x0f\n\x07message\x18\x01 \x01(\t\x12\x15\n\x0breceiver_id\x18\x02 \x01(\x05H\x00\x12\x12\n\x08group_id\x18\x03 \x01(\x05H\x00\x42\x08\n\x06target2\xa6\x02\n\x0b\x43hatService\x12\x35\n\x07\x43onnect\x12\x16.google.protobuf.Empty\x1a\x10.chat.ChatUpdate0\x01\x12\x34\n\x07NewUser\x12\x14.chat.NewUserRequest\x1a\x13.chat.LoginResponse\x12\x37\n\x0cJoinRoomChat\x12\x15.chat.JoinRoomRequest\x1a\x0e.chat.DataRoom0\x01\x12?\n\x0bSendMessage\x12\x18.chat.SendMessageRequest\x1a\x16.google.protobuf.Empty\x12\x30\n\x05Login\x12\x12.chat.LoginRequest\x1a\x13.chat.LoginResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -34,26 +34,28 @@ if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
   _globals['_LOGINREQUEST']._serialized_start=49
   _globals['_LOGINREQUEST']._serialized_end=99
-  _globals['_LOGINRESPONSE']._serialized_start=101
-  _globals['_LOGINRESPONSE']._serialized_end=196
-  _globals['_JOINROOMREQUEST']._serialized_start=198
-  _globals['_JOINROOMREQUEST']._serialized_end=231
-  _globals['_DATAROOM']._serialized_start=234
-  _globals['_DATAROOM']._serialized_end=475
-  _globals['_ITEMMESSAGE']._serialized_start=477
-  _globals['_ITEMMESSAGE']._serialized_end=585
-  _globals['_CHATUPDATE']._serialized_start=588
-  _globals['_CHATUPDATE']._serialized_end=725
-  _globals['_LASTMESSAGE']._serialized_start=727
-  _globals['_LASTMESSAGE']._serialized_end=826
-  _globals['_USERGROUPS']._serialized_start=828
-  _globals['_USERGROUPS']._serialized_end=914
-  _globals['_LASTESTMESSAGESLIST']._serialized_start=916
-  _globals['_LASTESTMESSAGESLIST']._serialized_end=1043
-  _globals['_USER']._serialized_start=1045
-  _globals['_USER']._serialized_end=1117
-  _globals['_SENDMESSAGEREQUEST']._serialized_start=1119
-  _globals['_SENDMESSAGEREQUEST']._serialized_end=1209
-  _globals['_CHATSERVICE']._serialized_start=1212
-  _globals['_CHATSERVICE']._serialized_end=1452
+  _globals['_NEWUSERREQUEST']._serialized_start=101
+  _globals['_NEWUSERREQUEST']._serialized_end=171
+  _globals['_LOGINRESPONSE']._serialized_start=173
+  _globals['_LOGINRESPONSE']._serialized_end=268
+  _globals['_JOINROOMREQUEST']._serialized_start=270
+  _globals['_JOINROOMREQUEST']._serialized_end=303
+  _globals['_DATAROOM']._serialized_start=306
+  _globals['_DATAROOM']._serialized_end=547
+  _globals['_ITEMMESSAGE']._serialized_start=549
+  _globals['_ITEMMESSAGE']._serialized_end=657
+  _globals['_CHATUPDATE']._serialized_start=660
+  _globals['_CHATUPDATE']._serialized_end=797
+  _globals['_LASTMESSAGE']._serialized_start=799
+  _globals['_LASTMESSAGE']._serialized_end=898
+  _globals['_USERGROUPS']._serialized_start=900
+  _globals['_USERGROUPS']._serialized_end=986
+  _globals['_LASTESTMESSAGESLIST']._serialized_start=988
+  _globals['_LASTESTMESSAGESLIST']._serialized_end=1115
+  _globals['_USER']._serialized_start=1117
+  _globals['_USER']._serialized_end=1189
+  _globals['_SENDMESSAGEREQUEST']._serialized_start=1191
+  _globals['_SENDMESSAGEREQUEST']._serialized_end=1281
+  _globals['_CHATSERVICE']._serialized_start=1284
+  _globals['_CHATSERVICE']._serialized_end=1578
 # @@protoc_insertion_point(module_scope)

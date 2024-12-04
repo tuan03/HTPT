@@ -40,6 +40,11 @@ class ChatServiceStub(object):
                 request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
                 response_deserializer=chat__pb2.ChatUpdate.FromString,
                 _registered_method=True)
+        self.NewUser = channel.unary_unary(
+                '/chat.ChatService/NewUser',
+                request_serializer=chat__pb2.NewUserRequest.SerializeToString,
+                response_deserializer=chat__pb2.LoginResponse.FromString,
+                _registered_method=True)
         self.JoinRoomChat = channel.unary_stream(
                 '/chat.ChatService/JoinRoomChat',
                 request_serializer=chat__pb2.JoinRoomRequest.SerializeToString,
@@ -63,6 +68,12 @@ class ChatServiceServicer(object):
     def Connect(self, request, context):
         """Stream realtime updates
         """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def NewUser(self, request, context):
+        """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
@@ -93,6 +104,11 @@ def add_ChatServiceServicer_to_server(servicer, server):
                     servicer.Connect,
                     request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
                     response_serializer=chat__pb2.ChatUpdate.SerializeToString,
+            ),
+            'NewUser': grpc.unary_unary_rpc_method_handler(
+                    servicer.NewUser,
+                    request_deserializer=chat__pb2.NewUserRequest.FromString,
+                    response_serializer=chat__pb2.LoginResponse.SerializeToString,
             ),
             'JoinRoomChat': grpc.unary_stream_rpc_method_handler(
                     servicer.JoinRoomChat,
@@ -137,6 +153,33 @@ class ChatService(object):
             '/chat.ChatService/Connect',
             google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             chat__pb2.ChatUpdate.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def NewUser(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/chat.ChatService/NewUser',
+            chat__pb2.NewUserRequest.SerializeToString,
+            chat__pb2.LoginResponse.FromString,
             options,
             channel_credentials,
             insecure,

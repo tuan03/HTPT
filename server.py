@@ -93,13 +93,30 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
                     {'message_id': 17, 'sender_id': 1, 'receiver_id': 2, 'message': 'Message 20', 'time': '2024-12-04 07:10:57.626571', 'isRead': False}
         ]
         self.Room = {}
-    def Login(self, request, context):
+    def NewUser(self, request, context):
         username = request.username
         password = request.password
-        user = next((user for user in self.users if user['username'] == username and user['password'] == password), None)
+        fullname = request.fullname
+        user = next((user for user in self.users if user['username'] == username), None)
         if user:
+            return chat_pb2.LoginResponse(
+                success=False,
+                message="Username đã được tạo",
+                token=""
+            )
+        else :
+            new_id = len(self.users) + 1
+            # Thêm user mới vào danh sách
+            new_user = {
+                'id': new_id,
+                'username': username,
+                'password': password,
+                'fullname': fullname
+            }
+            self.users.append(new_user)
+
             payload = {
-                "uid": user['id']
+                "uid": new_id
             }
             token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
 
@@ -107,15 +124,39 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
                 success=True,
                 message="Đăng nhập thành công",
                 token=token,
-                uid = user['id'],
-                fullname = user['fullname']
+                uid = new_id,
+                fullname = fullname
             )
-        else:
+
+    def Login(self, request, context):
+        username = request.username
+        password = request.password
+        user = next((user for user in self.users if user['username'] == username), None)
+        if not user:
             return chat_pb2.LoginResponse(
                 success=False,
-                message="Sai tài khoản hoặc mật khẩu",
+                message="not_been_created",
                 token=""
             )
+        if user['password'] != password:
+            return chat_pb2.LoginResponse(
+                success=False,
+                message="Nhập sai mật khẩu",
+                token=""
+            )
+
+        payload = {
+            "uid": user['id']
+        }
+        token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
+
+        return chat_pb2.LoginResponse(
+            success=True,
+            message="Đăng nhập thành công",
+            token=token,
+            uid = user['id'],
+            fullname = user['fullname']
+        )
 
     async def authen(self, context):
         metadata = dict(context.invocation_metadata())

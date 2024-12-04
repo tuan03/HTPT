@@ -42,6 +42,7 @@ class ChatClient:
         self.metadata =  None
         self.uid = None
         self.fullname = None
+        self.entry_fullname = None
     def isLogin(self):
         if self.metadata:
             return True 
@@ -108,7 +109,7 @@ class ChatClient:
             return f"{time_diff.seconds // (60*60)} giờ trước"
         else:
             return f"{time_diff.days} ngày trước"
-    def confirm_name():
+    def confirm_name(self):
         root = tk.Tk()
         root.title("Nhập họ và tên")
 
@@ -138,19 +139,37 @@ class ChatClient:
         label_message.pack()
 
         # Tạo ô nhập họ và tên
-        entry_name = tk.Entry(root, width=40)
-        entry_name.pack(pady=10)
+        self.entry_fullname = tk.Entry(root, width=40)
+        self.entry_fullname.pack(pady=10)
 
         # Nút xác nhận
         btn_confirm = tk.Button(
             root,
             text="Xác nhận",
-            command=lambda: handle_confirm(entry_name, root),
+            command=lambda : self.handle_new_user(root),
             width=15
         )
         btn_confirm.pack(pady=10)
 
         root.mainloop()
+    def handle_new_user(self,root):
+        username = self.entry_username.get()
+        password = self.entry_password.get()
+        fullname = self.entry_fullname.get()
+        if username and password and fullname:  # Kiểm tra xem ô nhập không rỗng
+            loop = asyncio.get_event_loop()
+            data = loop.run_until_complete(self.stub.NewUser(
+                        chat_pb2.NewUserRequest(username=username, password=password, fullname=fullname)
+                    ))  
+            if data.success :
+                self.metadata = [('authorization', data.token)]
+                self.uid = data.uid
+                self.fullname = data.fullname
+                root.destroy()
+            else:
+                messagebox.showwarning("Cảnh báo", data.message)    
+        else:
+            messagebox.showwarning("Cảnh báo", "Vui lòng nhập họ và tên của bạn!")
     def handle_login(self):
         username = self.entry_username.get()
         password = self.entry_password.get()
@@ -163,6 +182,9 @@ class ChatClient:
                 self.metadata = [('authorization', data.token)]
                 self.uid = data.uid
                 self.fullname = data.fullname
+                self.__login_frame.destroy()
+            elif data.message == 'not_been_created':
+                self.confirm_name()
                 self.__login_frame.destroy()
             else:
                 messagebox.showwarning("Cảnh báo", data.message)    
