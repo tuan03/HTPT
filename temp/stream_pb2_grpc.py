@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-import t_pb2 as t__pb2
+import stream_pb2 as stream__pb2
 
 GRPC_GENERATED_VERSION = '1.68.0'
 GRPC_VERSION = grpc.__version__
@@ -18,14 +18,14 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + f' but the generated code in t_pb2_grpc.py depends on'
+        + f' but the generated code in stream_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
     )
 
 
-class GreeterStub(object):
+class StreamServiceStub(object):
     """Missing associated documentation comment in .proto file."""
 
     def __init__(self, channel):
@@ -34,43 +34,43 @@ class GreeterStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.SayHello = channel.unary_stream(
-                '/Greeter/SayHello',
-                request_serializer=t__pb2.HelloRequest.SerializeToString,
-                response_deserializer=t__pb2.HelloResponse.FromString,
+        self.StreamData = channel.unary_stream(
+                '/StreamService/StreamData',
+                request_serializer=stream__pb2.Empty.SerializeToString,
+                response_deserializer=stream__pb2.DataResponse.FromString,
                 _registered_method=True)
 
 
-class GreeterServicer(object):
+class StreamServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
-    def SayHello(self, request, context):
+    def StreamData(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
 
-def add_GreeterServicer_to_server(servicer, server):
+def add_StreamServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'SayHello': grpc.unary_stream_rpc_method_handler(
-                    servicer.SayHello,
-                    request_deserializer=t__pb2.HelloRequest.FromString,
-                    response_serializer=t__pb2.HelloResponse.SerializeToString,
+            'StreamData': grpc.unary_stream_rpc_method_handler(
+                    servicer.StreamData,
+                    request_deserializer=stream__pb2.Empty.FromString,
+                    response_serializer=stream__pb2.DataResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'Greeter', rpc_method_handlers)
+            'StreamService', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('Greeter', rpc_method_handlers)
+    server.add_registered_method_handlers('StreamService', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
-class Greeter(object):
+class StreamService(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def SayHello(request,
+    def StreamData(request,
             target,
             options=(),
             channel_credentials=None,
@@ -83,9 +83,9 @@ class Greeter(object):
         return grpc.experimental.unary_stream(
             request,
             target,
-            '/Greeter/SayHello',
-            t__pb2.HelloRequest.SerializeToString,
-            t__pb2.HelloResponse.FromString,
+            '/StreamService/StreamData',
+            stream__pb2.Empty.SerializeToString,
+            stream__pb2.DataResponse.FromString,
             options,
             channel_credentials,
             insecure,

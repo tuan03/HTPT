@@ -39,6 +39,7 @@ class ChatClient:
         self.channel = grpc.aio.insecure_channel('localhost:50051')
         self.stub = chat_pb2_grpc.ChatServiceStub(self.channel)
         self.metadata =  None
+        self.uid = None
     def isLogin(self):
         if self.metadata:
             return True 
@@ -136,6 +137,7 @@ class ChatClient:
                     ))  
             if data.success :
                 self.metadata = [('authorization', data.token)]
+                self.uid = data.uid
                 self.__login_frame.destroy()
             else:
                 messagebox.showwarning("Cảnh báo", data.message)    
@@ -157,6 +159,7 @@ class ChatClient:
                 
                 self.list_user_online = online_users_list
                 self.recent_user_inbox = response.recent_user_inbox
+                print(self.recent_user_inbox)
                 self.usergroups = response.groupmess
                 self.render_list_bar()
                 
@@ -166,28 +169,32 @@ class ChatClient:
             
     async def joinRoomChat(self, room):
         try:
+            add_chat_func = None
             async for response in self.stub.JoinRoomChat(
                 chat_pb2.JoinRoomRequest(idRoom=room),
                 metadata=self.metadata
             ):
+
                 if response.messList:
-                    print(response.id)
-                    print(response)
-                    self.render_mess(response,"test")
-                
+                    add_chat_func = self.render_mess(response,"test")
+                if response.HasField('newMess'):
+                    add_chat_func(response.newMess)
+        except grpc.RpcError as e:
+            # Handle the error
+            print(e)
         except Exception as e:
             print(e)
-    async def SendMessage(self, room):
-        try:
-            async for response in self.stub.JoinRoomChat(
-                chat_pb2.JoinRoomRequest(idRoom=room),
-                metadata=self.metadata
-            ):
-                if response.messList:
-                    self.render_mess(response.messList,"test")
+    # async def SendMessage(self, room):
+    #     try:
+    #         async for response in self.stub.JoinRoomChat(
+    #             chat_pb2.JoinRoomRequest(idRoom=room),
+    #             metadata=self.metadata
+    #         ):
+    #             if response.messList:
+    #                 self.render_mess(response.messList,"test")
                 
-        except Exception as e:
-            print(e)
+    #     except Exception as e:
+    #         print(e)
     async def run(self):
         self.root = tk.Tk()
         self.root.title("CHATTING")
@@ -423,20 +430,24 @@ class ChatClient:
         text_widget.config(padx=10, pady=10)
         main_bar_footer.create_window(10, 13, window=text_widget,anchor="nw")
 
-        def add_mess_to_box():
+        def add_mess_to_box(new_message):
             text_widget.delete("1.0", "end")
             bbox2 = __def__sub_canvas.bbox("all")
             if bbox2 is None:
                 bbox2 = (0,0,0,0)
             child_can = tk.Canvas(__def__sub_canvas,  bg="white", highlightthickness=0,relief="solid",bd="1")
-            child_can.create_text(10, 10, anchor="nw", text="temp mess", width=250, font=("Arial", 12), fill="black")
+            child_can.create_text(10, 10, anchor="nw", text=new_message.message, width=250, font=("Arial", 12), fill="black")
             # Cập nhật kích thước của Canvas để chứa văn bản
             bbox = child_can.bbox("all")  # Lấy bounding box của văn bản
             child_can.config(width=bbox[2]+10, height=bbox[3]+40)
-            child_can.create_text(10, bbox[3]+10, anchor="nw", text="Gửi vào: 2 ngày trước (Đã xem)", width=250, font=("Arial", 10), fill="black")
+            child_can.create_text(10, bbox[3]+10, anchor="nw", text=f"{new_message.time} (Đã xem)", width=250, font=("Arial", 10), fill="black")
             bbox = child_can.bbox("all")  # Lấy bounding box của văn bản
             child_can.config(width=bbox[2]+10, height=bbox[3])
-            __def__sub_canvas.create_window(_w_temp - bbox[2]-30, bbox2[3] + 10, window=child_can,anchor='nw')
+            if new_message.sender.id != self.uid :
+                __def__sub_canvas.create_window(10, bbox2[3] + 10, window=child_can,anchor='nw')
+            else :
+                __def__sub_canvas.create_window(_w_temp - bbox[2]-30, bbox2[3] + 10, window=child_can,anchor='nw')
+
             __def__sub_canvas.update_idletasks()
             bbox2 = __def__sub_canvas.bbox("all")
             __def__sub_canvas.config( height=bbox2[3]+10)
@@ -459,7 +470,7 @@ class ChatClient:
                     )   
                 except Exception as e:
                     print(e)
-                add_mess_to_box()
+                # add_mess_to_box()
             elif dataG.typeM == 'g':
                 try:
                     self.stub.SendMessage(
@@ -468,33 +479,8 @@ class ChatClient:
                     )   
                 except Exception as e:
                     print(e)
-                add_mess_to_box()
+                # add_mess_to_box()
 
-        def receiver_mess(__def__canvas_root, __def__sub_canvas,__def__scrollbar,__def__temp, text_widget):
-            message = text_widget.get("1.0", "end-1c")
-            text_widget.delete("1.0", "end")
-            bbox2 = __def__sub_canvas.bbox("all")
-            if bbox2 is None:
-                bbox2 = (0,0,0,0)
-            child_can = tk.Canvas(__def__sub_canvas,  bg="white", highlightthickness=0,relief="solid",bd="1")
-            child_can.create_text(10, 10, anchor="nw", text=message, width=250, font=("Arial", 12), fill="black")
-            # Cập nhật kích thước của Canvas để chứa văn bản
-            bbox = child_can.bbox("all")  # Lấy bounding box của văn bản
-            child_can.config(width=bbox[2]+10, height=bbox[3]+40)
-            child_can.create_text(10, bbox[3]+10, anchor="nw", text="Gửi vào: 2 ngày trước (Đã xem)", width=250, font=("Arial", 10), fill="black")
-            bbox = child_can.bbox("all")  # Lấy bounding box của văn bản
-            child_can.config(width=bbox[2]+10, height=bbox[3])
-            __def__sub_canvas.create_window(10, bbox2[3] + 10, window=child_can,anchor='nw')
-            __def__sub_canvas.update_idletasks()
-            bbox2 = __def__sub_canvas.bbox("all")
-            __def__sub_canvas.config( height=bbox2[3]+10)
-            __def__canvas_root.create_window((1, 10), window=__def__sub_canvas, anchor=tk.NW)
-            __def__sub_canvas.update_idletasks()
-            __def__canvas_root.config(scrollregion=__def__canvas_root.bbox("all"))
-            __def__sub_canvas.update_idletasks()
-            _,_,w,h = __def__canvas_root.bbox("all")
-            self.update_scrollbar_visibility(__def__canvas_root,__def__scrollbar,__def__temp) 
-            __def__canvas_root.yview_moveto(1)
 
         self.temp_img_send = self.render_img(main_bar_footer,"send.png",30,30,530,35,on_click=lambda _ : asyncio.create_task(add_mess()))
         self.update_scrollbar_visibility(__def__canvas_root,__def__scrollbar,__def__temp)    
@@ -502,7 +488,7 @@ class ChatClient:
         width = body_bar.winfo_reqwidth()
         height = body_bar.winfo_reqheight()
         body_bar.config(width=width, height=height)
-
+        return add_mess_to_box
 
 
 

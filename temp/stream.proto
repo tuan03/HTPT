@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+service StreamService {
+    rpc StreamData(Empty) returns (stream DataResponse);
+}
+
+message Empty {}
+
+message DataResponse {
+    string message = 1;
+}

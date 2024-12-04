@@ -25,6 +25,7 @@ message LoginResponse {
   bool success = 1;      // Đăng nhập thành công hay không
   string message = 2;    // Thông báo từ server
   string token = 3;      // Token xác thực (nếu thành công)
+  int32 uid= 4;
 }
 
 message JoinRoomRequest {
@@ -34,6 +35,7 @@ message DataRoom {
   int32 id=1;
   string typeM = 2;
   repeated ItemMessage messList = 3;
+  optional ItemMessage newMess = 4;
 }
 
 message ItemMessage {

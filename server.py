@@ -32,6 +32,7 @@ def verify_jwt(token):
 class ChatService(chat_pb2_grpc.ChatServiceServicer):
     def __init__(self):
         self.online_users = {}
+        self.room_users = {}
         self.users = [
                         {'id': 1, 'username': 'u1', 'password': 'p1', 'fullname': 'Nguyễn Anh Tuấn'},
                         {'id': 2, 'username': 'u2', 'password': 'p2', 'fullname': 'Hoàng Minh Tâm'},
@@ -79,16 +80,13 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
         ]
 
         self.messages_by_user = [
-                    {'message_id': 20, 'sender_id': 1, 'receiver_id': 2, 'message': 'Message 20', 'time': '2024-12-02', 'isRead': True},
-                    {'message_id': 21, 'sender_id': 2, 'receiver_id': 1, 'message': 'Message 21', 'time': '2024-12-03', 'isRead': True},
-                    {'message_id': 22, 'sender_id': 1, 'receiver_id': 2, 'message': 'Message 23', 'time': '2024-12-02', 'isRead': True},
-                ]
-        self.MainQueue = {}
+                    {'message_id': 17, 'sender_id': 1, 'receiver_id': 2, 'message': 'Message 20', 'time': '2024-12-04 07:10:57.626571', 'isRead': True}
+        ]
+        self.Room = {}
     def Login(self, request, context):
         username = request.username
         password = request.password
         user = next((user for user in self.users if user['username'] == username and user['password'] == password), None)
-        print(user)
         if user:
             payload = {
                 "uid": user['id']
@@ -98,7 +96,8 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
             return chat_pb2.LoginResponse(
                 success=True,
                 message="Đăng nhập thành công",
-                token=token
+                token=token,
+                uid = user['id']
             )
         else:
             return chat_pb2.LoginResponse(
@@ -116,7 +115,8 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
             return verify_jwt(token)
         else:
             await context.abort(grpc.StatusCode.UNAUTHENTICATED, "Chưa đăng nhập người dùng")
-    def get_recent_user_inbox(self,user_id, messages):
+    def get_recent_user_inbox(self,user_id):
+        messages = self.messages_by_user
         latest_messages = defaultdict(lambda: None)
         for message in messages:
             if message['sender_id'] == user_id or message['receiver_id'] == user_id:
@@ -176,17 +176,22 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
         return result
     async def Connect(self, request, context):
         uid = await self.authen(context)
-        self.online_users[uid] = queue.Queue()
-        while True:
-                await asyncio.sleep(1)
-                update = ChatUpdate(
-                    online_users=list([user for user in self.users if user['id'] in self.online_users and user['id'] != uid]),
-                    recent_user_inbox=self.get_recent_user_inbox(uid,self.messages_by_user),
-                    groupmess = self.get_user_groups(uid,self.groups)
-                )
-                yield update
-        if uid in self.online_users :
-            del self.online_users[uid]
+        try :
+            self.online_users[uid] = context
+            print("kkk",self.get_user_groups(uid,self.groups))
+            while True:
+                    await asyncio.sleep(1)
+                    update = ChatUpdate(
+                        online_users=list([user for user in self.users if user['id'] in self.online_users and user['id'] != uid]),
+                        recent_user_inbox=self.get_recent_user_inbox(uid),
+                        groupmess = self.get_user_groups(uid,self.groups)
+                    )
+                    yield update
+        except Exception as e:
+            print(e)
+        finally:
+            if uid in self.online_users :
+                del self.online_users[uid]
         return
     def create_room_id(self,user_id1, user_id2):
         try:
@@ -199,38 +204,46 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
         except Exception as e:
             print(e)
     def get_group_messages(self,group_id):
-        # Tìm nhóm có group_id = 1
         for group in self.groups:
             if group['group_id'] == group_id:
+                result = []
                 for message in group['messages']:
-                    cob = next(user for user in self.users if user['id'] == message['sender_id'])
-                    message['sender'] = cob if cob else {}
-                    sender_id = message.pop('sender_id', None)
-                return group['messages']
+                    pmess = copy.deepcopy(message)
+                    cob = next(user for user in self.users if user['id'] == pmess['sender_id'])
+                    pmess['sender'] = cob if cob else {}
+                    sender_id = pmess.pop('sender_id', None)
+                    result.append(pmess)
+                return result
         return []
     async def JoinRoomChat(self, request, context):
+        idRoom = request.idRoom
+        idUser = await self.authen(context)
+        idHash = None
+        typeM = idRoom[0]
+        messList = None
         try:
-            idRoom = request.idRoom
-            idUser = await self.authen(context)
-            idHash = None
-            typeM = idRoom[0]
-            messList = None
             if 'p' in idRoom:
                 idHash = self.create_room_id(int(idUser),int(idRoom[1:]))
                 messList  = list(self.get_messages(idUser,int(idRoom[1:]),self.messages_by_user))
             else:
                 idHash = self.create_room_id(int(-1),int(idRoom[1:]))
                 messList = self.get_group_messages(int(idRoom[1:]))
-            print(messList)
-            if idHash not in self.MainQueue:
-                self.MainQueue[idHash] = queue.Queue()
-            self.MainQueue[idHash].put(self.online_users[idUser])
-
-            
+                print(messList)
+            if idHash not in self.Room:
+                self.Room[idHash] = {}
+            if idUser not in self.room_users:
+                self.room_users[idUser] = idHash
+            else:
+                if idUser in self.Room[self.room_users[idUser]]:
+                    del self.Room[self.room_users[idUser]][idUser]
+                self.room_users[idUser] = idHash
+            self.Room[idHash][idUser] = context
+ 
+            print("tick1",self.Room[idHash])
             yield chat_pb2.DataRoom(
                         id = int(idRoom[1:]),
                         typeM = typeM,
-                        messList=messList,
+                        messList=messList
                     )
 
             while True:
@@ -239,22 +252,98 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
                         id = int(idRoom[1:]),
                         typeM = typeM,
                         messList=None,
+                        newMess=None
                     )
             return
         except Exception as e:
             print(e)
-
-    async def SendMessage(self, request, context):
-        if request.HasField("receiver_id"):
-            receiver_id = request.receiver_id
-            print(f"Receiver ID: {receiver_id}")
-        elif request.HasField("group_id"):
-            group_id = request.group_id
-            print(f"Group ID: {group_id}")
+        finally:
+            if idUser in self.Room[idHash]:
+                del self.Room[idHash][idUser]
+                print("Đã đóng connect trước")
+                print("tick2",self.Room[idHash])
+    def add_message(self, mess, sender, receiver):
+        # Tạo một ID mới cho tin nhắn
+        new_message_id = max([msg['message_id'] for msg in self.messages_by_user]) + 1
+        
+        # Lấy thời gian hiện tại
+        current_time = str(datetime.now())
+        # Tạo tin nhắn mới
+        new_message = {
+            'message_id': new_message_id,
+            'sender_id': sender,
+            'receiver_id': receiver,
+            'message': mess,
+            'time': current_time,
+            'isRead': False,  # Mặc định là chưa đọc
+        }    
+        # Thêm tin nhắn mới vào danh sách
+        self.messages_by_user.append(new_message)
+        pmess = copy.deepcopy(new_message)
+        cob = next(user for user in self.users if user['id'] == sender)
+        pmess['sender'] = cob if cob else {}
+        sender_id = pmess.pop('sender_id', None)
+        receiver = pmess.pop('receiver_id', None)
+        return pmess
+    def add_message_to_group(self,group_id, sender_id, message):
+        # Tìm nhóm theo group_id
+        group = next((g for g in self.groups if g['group_id'] == group_id), None)
+        
+        if group:
+            # Tạo message_id mới (số ID tin nhắn tiếp theo trong nhóm)
+            new_message_id = max([msg['message_id'] for msg in group['messages']], default=0) + 1
+            
+            # Lấy thời gian hiện tại
+            from datetime import datetime
+            current_time = str(datetime.now())
+            
+            # Thêm tin nhắn vào nhóm
+            new_message = {
+                'message_id': new_message_id,
+                'sender_id': sender_id,
+                'message': message,
+                'time': current_time,
+                'isRead': False  # Tin nhắn mới mặc định là chưa đọc
+            }
+            
+            group['messages'].append(new_message)
+            pmess = copy.deepcopy(new_message)
+            cob = next((user for user in self.users if user['id'] == sender_id), {})
+            pmess['sender'] = cob if cob else {}
+            sender_id = pmess.pop('sender_id', None)
+            return pmess
         else:
-            print("No receiver or group ID specified")
+            return None
+    async def SendMessage(self, request, context):
+        uid = await self.authen(context)
+        try:
+            # print("tick:",request.message)
+            if request.HasField("receiver_id"):
+                receiver_id = request.receiver_id
+                roomHash = self.create_room_id(uid,receiver_id)
+                newMess = self.add_message(request.message,uid,receiver_id)
+                for i in self.Room[roomHash]:
+                    await self.Room[roomHash][i].write(chat_pb2.DataRoom(
+                        id = int(receiver_id),
+                        typeM = 'p',
+                        newMess=newMess
+                    ))
+            elif request.HasField("group_id"):
+                group_id = request.group_id
+                roomHash = self.create_room_id(int(-1),int(group_id))
+                newMess = self.add_message_to_group(group_id,uid,request.message)
+                for i in self.Room[roomHash]:
+                    await self.Room[roomHash][i].write(chat_pb2.DataRoom(
+                        id = int(group_id),
+                        typeM = 'g',
+                        newMess=newMess
+                    ))
+            else:
+                print("No receiver or group ID specified")
 
-        return Empty()
+            return Empty()
+        except Exception as e:
+            print(e)
 
     async def MarkAsSeen(self, request, context):
         for message in self.messages:
